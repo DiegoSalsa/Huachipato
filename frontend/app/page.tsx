@@ -212,7 +212,10 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    loadData(null);
+    // Defer initial data bootstrap to avoid synchronous state updates in effect body.
+    queueMicrotask(() => {
+      void loadData(null);
+    });
   }, [loadData]);
 
   const filteredMetrics = activeFilter === "all"

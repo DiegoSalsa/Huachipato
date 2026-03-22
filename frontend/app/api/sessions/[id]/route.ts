@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/db";
+import { getSessionById } from "@/backend/api/sessions";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(
@@ -12,19 +12,7 @@ export async function GET(
     return NextResponse.json({ error: "Invalid session ID" }, { status: 400 });
   }
 
-  const session = await prisma.session.findUnique({
-    where: { id: sessionId },
-    include: {
-      segments: true,
-      metrics: {
-        include: {
-          player: true,
-          segment: true,
-        },
-        orderBy: { totalDistance: "desc" },
-      },
-    },
-  });
+  const session = await getSessionById(sessionId);
 
   if (!session) {
     return NextResponse.json({ error: "Session not found" }, { status: 404 });

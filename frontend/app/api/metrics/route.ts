@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/db";
+import { listMetricsWithAverages } from "@/backend/api/metrics";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
@@ -7,41 +7,21 @@ export async function GET(request: NextRequest) {
   const segmentId = searchParams.get("segmentId");
   const playerId = searchParams.get("playerId");
 
-  const where: Record<string, unknown> = {};
+  const parsedSessionId = sessionId ? parseInt(sessionId, 10) : undefined;
+  const parsedPlayerId = playerId ? parseInt(playerId, 10) : undefined;
 
-  if (sessionId) where.sessionId = parseInt(sessionId, 10);
-  if (playerId) where.playerId = parseInt(playerId, 10);
+  const parsedSegmentId =
+    segmentId === "null" || segmentId === ""
+      ? null
+      : segmentId
+        ? parseInt(segmentId, 10)
+        : undefined;
 
-  // segmentId=null means "entire session", segmentId=<number> means specific segment
-  if (segmentId === "null" || segmentId === "") {
-    where.segmentId = null;
-  } else if (segmentId) {
-    where.segmentId = parseInt(segmentId, 10);
-  }
-
-  const metrics = await prisma.playerMetric.findMany({
-    where,
-    include: {
-      player: true,
-      session: true,
-      segment: true,
-    },
-    orderBy: { totalDistance: "desc" },
+  const result = await listMetricsWithAverages({
+    sessionId: parsedSessionId,
+    segmentId: parsedSegmentId,
+    playerId: parsedPlayerId,
   });
 
-  // Calculate averages
-  if (metrics.length > 0) {
-    const avg = {
-      totalDistance: Math.round(metrics.reduce((s, m) => s + m.totalDistance, 0) / metrics.length),
-      dMin: Math.round(metrics.reduce((s, m) => s + m.dMin, 0) / metrics.length),
-      maxSpeed: +(metrics.reduce((s, m) => s + m.maxSpeed, 0) / metrics.length).toFixed(2),
-      hsr: Math.round(metrics.reduce((s, m) => s + m.hsr, 0) / metrics.length),
-      distZ6: Math.round(metrics.reduce((s, m) => s + m.distZ6, 0) / metrics.length),
-      acc: Math.round(metrics.reduce((s, m) => s + m.acc, 0) / metrics.length),
-      dec: Math.round(metrics.reduce((s, m) => s + m.dec, 0) / metrics.length),
-    };
-    return NextResponse.json({ metrics, averages: avg });
-  }
-
-  return NextResponse.json({ metrics, averages: null });
+  return NextResponse.json(result);
 }

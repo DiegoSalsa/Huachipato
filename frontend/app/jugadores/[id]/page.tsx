@@ -1,6 +1,7 @@
 "use client";
 
 import { use, useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import Sidebar from "@/components/Sidebar";
 
 interface Player {
@@ -199,7 +200,13 @@ export default function JugadorPerfilPage({ params }: { params: Promise<{ id: st
           <div className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-5 rounded-3xl border border-slate-200 bg-gradient-to-r from-slate-50 to-white p-5 md:grid-cols-[auto_1fr_auto] md:items-center">
             <div className="h-24 w-24 overflow-hidden rounded-2xl border border-slate-200 bg-slate-100">
               {player.imageUrl ? (
-                <img src={player.imageUrl} alt={`Foto de ${player.name}`} className="h-full w-full object-cover" />
+                  <Image
+                    src={player.imageUrl}
+                    alt={`Foto de ${player.name}`}
+                    className="h-full w-full object-cover"
+                    width={96}
+                    height={96}
+                  />
               ) : (
                 <div className="flex h-full w-full items-center justify-center bg-[#0085CB] text-4xl font-black text-white">{player.name.charAt(0)}</div>
               )}

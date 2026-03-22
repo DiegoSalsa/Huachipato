@@ -1,14 +1,8 @@
-import { prisma } from "@/lib/db";
+import { listSessions } from "@/backend/api/sessions";
 import { NextResponse } from "next/server";
 
 export async function GET() {
-  const sessions = await prisma.session.findMany({
-    orderBy: { date: "desc" },
-    include: {
-      segments: true,
-      _count: { select: { metrics: true } },
-    },
-  });
+  const sessions = await listSessions();
 
   return NextResponse.json(sessions);
 }

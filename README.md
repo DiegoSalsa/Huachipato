@@ -132,15 +132,17 @@ import Header from '@/components/Header';
 
 ### Librerías
 ```typescript
-// ✅ Importar desde frontend/lib
-import { db } from '@/lib/db';
+// ✅ Tipos desde frontend/lib
 import type { Player } from '@/lib/types';
+
+// ✅ Prisma desde backend/lib
+import { prisma } from '@/backend/lib/db';
 ```
 
 ### Backend
 ```typescript
 // ✅ Importar lógica del backend
-import { getPlayers } from '@/backend/api/players';
+import { listPlayers } from '@/backend/api/players';
 ```
 
 ## Licencia

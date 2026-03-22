@@ -1,6 +1,7 @@
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
 import StatCard from "@/components/StatCard";
+import Image from "next/image";
 
 interface Injury {
   name: string;
@@ -103,10 +104,12 @@ export default function MedicoPage() {
                             <td className="px-6 py-4">
                               <div className="flex items-center gap-3">
                                 <div className="h-8 w-8 rounded-full bg-slate-200 overflow-hidden">
-                                  <img
+                                  <Image
                                     className="h-full w-full object-cover"
                                     alt={`Perfil de ${injury.name}`}
                                     src={injury.imageUrl}
+                                    width={32}
+                                    height={32}
                                   />
                                 </div>
                                 <span className="text-sm font-semibold text-slate-900">

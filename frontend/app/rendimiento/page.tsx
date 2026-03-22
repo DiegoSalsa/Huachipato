@@ -169,19 +169,21 @@ export default function RendimientoPage() {
   const positionOptions = Array.from(groupedByPosition.keys());
   const selectedMetrics = groupedByPosition.get(selectedPosition) || [];
 
-  useEffect(() => {
-    if (!selectedMetrics.length) {
-      setStarterId(null);
-      setSubstituteId(null);
-      return;
-    }
+  const defaultStarterId = selectedMetrics[0]?.playerId ?? null;
+  const defaultSubstituteId = selectedMetrics[1]?.playerId ?? defaultStarterId;
 
-    setStarterId(selectedMetrics[0]?.playerId ?? null);
-    setSubstituteId(selectedMetrics[1]?.playerId ?? selectedMetrics[0]?.playerId ?? null);
-  }, [selectedPosition, selectedMetrics]);
+  const resolvedStarterId =
+    starterId !== null && selectedMetrics.some((metric) => metric.playerId === starterId)
+      ? starterId
+      : defaultStarterId;
 
-  const starter = selectedMetrics.find((metric) => metric.playerId === starterId) || null;
-  const substitute = selectedMetrics.find((metric) => metric.playerId === substituteId) || null;
+  const resolvedSubstituteId =
+    substituteId !== null && selectedMetrics.some((metric) => metric.playerId === substituteId)
+      ? substituteId
+      : defaultSubstituteId;
+
+  const starter = selectedMetrics.find((metric) => metric.playerId === resolvedStarterId) || null;
+  const substitute = selectedMetrics.find((metric) => metric.playerId === resolvedSubstituteId) || null;
 
   const comparisonCards = starter && substitute
     ? metricConfig.map((metric) => {
@@ -229,7 +231,7 @@ export default function RendimientoPage() {
                 <div>
                   <label className="mb-2 block text-xs font-bold uppercase tracking-[0.13em] text-slate-500">Jugador A</label>
                   <select
-                    value={starterId ?? ""}
+                    value={resolvedStarterId ?? ""}
                     onChange={(event) => setStarterId(Number(event.target.value))}
                     className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-800 outline-none focus:border-[#0085CB]"
                   >
@@ -244,7 +246,7 @@ export default function RendimientoPage() {
                 <div>
                   <label className="mb-2 block text-xs font-bold uppercase tracking-[0.13em] text-slate-500">Jugador B</label>
                   <select
-                    value={substituteId ?? ""}
+                    value={resolvedSubstituteId ?? ""}
                     onChange={(event) => setSubstituteId(Number(event.target.value))}
                     className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-800 outline-none focus:border-[#0085CB]"
                   >

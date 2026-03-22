@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/db";
+import { getPlayerById } from "@/backend/api/players";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(
@@ -12,21 +12,7 @@ export async function GET(
     return NextResponse.json({ error: "Invalid player ID" }, { status: 400 });
   }
 
-  const player = await prisma.player.findUnique({
-    where: { id: playerId },
-    include: {
-      metrics: {
-        include: {
-          session: true,
-          segment: true,
-        },
-        orderBy: { session: { date: "desc" } },
-      },
-      medicalRecords: {
-        orderBy: { date: "desc" },
-      },
-    },
-  });
+  const player = await getPlayerById(playerId);
 
   if (!player) {
     return NextResponse.json({ error: "Player not found" }, { status: 404 });
