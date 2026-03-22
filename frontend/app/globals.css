@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-primary: #0085CB;
+  --color-background-light: #ffffff;
+  --color-background-dark: #0f1c23;
+  --color-sidebar: #0085CB;
+  --font-display: "Manrope", sans-serif;
+}
+
+body {
+  font-family: var(--font-display);
+  background: #ffffff;
+}
+
+/* Scrollbar Hide Utility */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Radar Chart Styles */
+.radar-grid {
+  stroke: #e2e8f0;
+  stroke-width: 1;
+  fill: none;
+}

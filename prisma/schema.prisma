@@ -1,0 +1,85 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Player {
+  id        Int      @id @default(autoincrement())
+  name      String
+  position  String   @default("")
+  number    Int?
+  category  String   @default("Sub-17")
+  imageUrl  String   @default("")
+  createdAt DateTime @default(now())
+
+  metrics        PlayerMetric[]
+  medicalRecords MedicalRecord[]
+}
+
+model Session {
+  id           Int      @id @default(autoincrement())
+  date         DateTime
+  startTime    String
+  endTime      String
+  duration     String
+  totalPlayers Int
+  fileName     String   @default("")
+  createdAt    DateTime @default(now())
+
+  segments Segment[]
+  metrics  PlayerMetric[]
+}
+
+model Segment {
+  id        Int    @id @default(autoincrement())
+  sessionId Int
+  name      String
+  startTime String
+  endTime   String
+  duration  String
+
+  session Session        @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  metrics PlayerMetric[]
+}
+
+model PlayerMetric {
+  id            Int  @id @default(autoincrement())
+  playerId      Int
+  sessionId     Int
+  segmentId     Int?
+  totalDistance  Int     // meters
+  dMin          Int     // meters per min
+  maxSpeed      Float   // km/h
+  hsr           Int     // meters (high speed running)
+  distZ5        Int     // meters (zone 5 distance)
+  distZ6        Int     // meters (zone 6 distance)
+  sprintCount   Int
+  sprintDist    Int     // meters
+  acc           Int     // accelerations count
+  dec           Int     // decelerations count
+
+  player  Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  session Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  segment Segment? @relation(fields: [segmentId], references: [id], onDelete: Cascade)
+}
+
+model MedicalRecord {
+  id        Int      @id @default(autoincrement())
+  playerId  Int
+  date      DateTime
+  weight    Float?   // kg
+  height    Float?   // cm
+  fatPct    Float?   // body fat %
+  musclePct Float?   // muscle mass %
+  jumpCMJ   Float?   // vertical jump cm
+  sprint10m Float?   // 10m sprint seconds
+  status    String   @default("Estable") // Óptimo, Estable, Monitoreo, Lesionado
+  notes     String   @default("")
+  createdAt DateTime @default(now())
+
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+}
