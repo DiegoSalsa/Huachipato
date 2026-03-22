@@ -1,36 +1,94 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Huachipato - Sistema de Análisis de Rendimiento
 
-## Getting Started
+Plataforma web para monitoreo y análisis de rendimiento de jugadores de fútbol. Permite gestionar datos de sesiones de entrenamiento, métricas de desempeño y registros médicos de forma centralizada.
 
-First, run the development server:
+## Características
+
+✅ **Gestión de Jugadores** - Crear y organizar perfiles de jugadores por categoría  
+✅ **Sesiones de Entrenamiento** - Registrar sesiones con análisis segmentado  
+✅ **Métricas de Rendimiento** - Distancia total, velocidad máxima, sprints, aceleraciones, etc.  
+✅ **Registros Médicos** - Peso, altura, composición corporal, pruebas de rendimiento  
+✅ **Dashboard Interactivo** - Visualización de datos con gráficos y filtros  
+✅ **Importar Datos** - Carga de información desde archivos Excel  
+
+## Tecnologías
+
+- **Frontend:** Next.js 16, React 19, TypeScript, Tailwind CSS
+- **Backend:** Next.js API Routes, Prisma ORM
+- **Base de Datos:** SQLite
+- **Otros:** XLSX (importación de datos)
+
+## Instalación
+
+### Requisitos
+- Node.js 18+
+- npm o yarn
+
+### Setup
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# Clonar repositorio
+git clone <repository-url>
+cd huachipato-app
+
+# Instalar dependencias
+npm install
+
+# Configurar base de datos
+npx prisma migrate dev
+npx prisma db seed
+
+# Variables de entorno
+# Crear archivo .env.local con:
+DATABASE_URL="file:./dev.db"
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Scripts
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm run dev      # Iniciar servidor de desarrollo (localhost:3000)
+npm run build    # Construir para producción
+npm start        # Ejecutar versión producción
+npm run lint     # Validar código con ESLint
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Estructura del Proyecto
 
-## Learn More
+```
+src/
+├── app/
+│   ├── api/              # API Routes (jugadores, sesiones, métricas, medico)
+│   ├── jugadores/        # Gestión de jugadores
+│   ├── ingesta/          # Importación de datos
+│   ├── medico/           # Registros médicos
+│   ├── rendimiento/      # Dashboard de rendimiento
+│   └── layout.tsx        # Layout principal
+├── components/           # Componentes React reutilizables
+│   ├── Sidebar.tsx
+│   ├── PlayerCard.tsx
+│   ├── RadarChart.tsx
+│   └── SegmentFilter.tsx
+└── lib/
+    ├── db.ts            # Configuración de Prisma
+    └── types.ts         # Tipos TypeScript
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Base de Datos
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Modelos principales:
+- **Player** - Información de jugadores
+- **Session** - Sesiones de entrenamiento
+- **Segment** - Segmentos dentro de sesiones
+- **PlayerMetric** - Métricas de rendimiento
+- **MedicalRecord** - Registros médicos y pruebas
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Uso
 
-## Deploy on Vercel
+1. **Crear Jugadores** - Navegar a "Jugadores" y agregar nuevo jugador
+2. **Registrar Sesiones** - En "Ingesta", importar datos desde archivo Excel
+3. **Ver Rendimiento** - Consultar métricas en dashboard de rendimiento
+4. **Registros Médicos** - Documentar evaluaciones en sección "Médico"
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Licencia
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Privado - Uso interno únicamente
