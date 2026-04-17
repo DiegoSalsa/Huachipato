@@ -3,373 +3,312 @@
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
-import SegmentFilter from "@/components/SegmentFilter";
+import AcwrBadge, { riskConfig } from "@/components/AcwrBadge";
 
-interface Player {
-  id: number;
-  name: string;
+type AcwrRisk = "bajo" | "optimo" | "cuidado" | "alto";
+
+interface PlayerAcwr {
+  playerId: string;
+  playerName: string;
   position: string;
+  currentWeek: {
+    totalDistance: number;
+    highVelocity: number;
+    mechanicalImpacts: number;
+  } | null;
+  acuteDistance: number | null;
+  chronicDistance28: number | null;
+  ratioDistance28: number | null;
+  ratioHighVelocity28: number | null;
+  ratioMechImpacts28: number | null;
+  riskDistance: AcwrRisk | null;
+  riskHighVelocity: AcwrRisk | null;
+  riskMechImpacts: AcwrRisk | null;
+  overallRisk: AcwrRisk | null;
+  weeksAvailable: number;
 }
 
-interface Metric {
-  id: number;
-  playerId: number;
-  totalDistance: number;
-  dMin: number;
-  maxSpeed: number;
-  hsr: number;
-  acc: number;
-  dec: number;
-  player: Player;
+interface AcwrResponse {
+  players: PlayerAcwr[];
+  week: number;
+  year: number;
+  availableWeeks: { year: number; weekNumber: number }[];
 }
 
-interface Session {
-  id: number;
-  date: string;
-  startTime: string;
-  endTime: string;
-  duration: string;
-  totalPlayers: number;
-  segments: { id: number; name: string }[];
-}
-
-interface MetricsResponse {
-  metrics: Metric[];
-  averages: { totalDistance: number; dMin: number; maxSpeed: number; acc: number; dec: number } | null;
-}
-
-interface WeeklySnapshot {
-  sessionId: number;
-  date: string;
-  dayLabel: string;
-  context: "Partido" | "Entrenamiento";
-  loadIndex: number;
-  players: number;
-}
-
-type TrafficStatus = "optimal" | "caution" | "danger";
-
-const statusConfig: Record<TrafficStatus, { label: string; badge: string; accent: string; dot: string }> = {
-  optimal: {
-    label: "Verde · Optimo",
-    badge: "bg-emerald-100 text-emerald-700",
-    accent: "border-emerald-200",
-    dot: "bg-emerald-500",
-  },
-  caution: {
-    label: "Amarillo · Cuidado",
-    badge: "bg-amber-100 text-amber-700",
-    accent: "border-amber-200",
-    dot: "bg-amber-500",
-  },
-  danger: {
-    label: "Rojo · Sobrecarga",
-    badge: "bg-rose-100 text-rose-700",
-    accent: "border-rose-200",
-    dot: "bg-rose-500",
-  },
+const positionLabels: Record<string, string> = {
+  PORTERO: "Portero",
+  DEFENSA: "Defensa",
+  MEDIOCAMPISTA: "Mediocampista",
+  DELANTERO: "Delantero",
 };
 
-const statusFilters = [
-  { icon: "group", label: "Todos", classes: "bg-slate-100 border-transparent", filter: "all" },
-  { icon: "check_circle", label: "Optimo", classes: "bg-emerald-50 text-emerald-700 border-emerald-200", filter: "optimal" },
-  { icon: "warning", label: "Cuidado", classes: "bg-amber-50 text-amber-700 border-amber-200", filter: "caution" },
-  { icon: "error", label: "Riesgo", classes: "bg-rose-50 text-rose-700 border-rose-200", filter: "danger" },
+const filterButtons = [
+  { key: "all", icon: "group", label: "Todos", classes: "bg-slate-100 border-transparent" },
+  { key: "optimo", icon: "check_circle", label: "Óptimo", classes: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+  { key: "cuidado", icon: "warning", label: "Cuidado", classes: "bg-amber-50 text-amber-700 border-amber-200" },
+  { key: "alto", icon: "error", label: "Alto Riesgo", classes: "bg-rose-50 text-rose-700 border-rose-200" },
+  { key: "bajo", icon: "ac_unit", label: "Bajo", classes: "bg-sky-50 text-sky-700 border-sky-200" },
 ];
 
-function getAcuteLoad(metric: Metric) {
+function RatioCell({ ratio, risk }: { ratio: number | null; risk: AcwrRisk | null }) {
+  if (ratio === null) {
+    return <span className="text-slate-400">—</span>;
+  }
+
+  const config = risk ? riskConfig[risk] : null;
   return (
-    metric.totalDistance / 1000 +
-    metric.hsr / 180 +
-    metric.acc * 0.75 +
-    metric.dec * 0.65 +
-    metric.dMin * 0.12
-  );
-}
-
-function getChronicLoad(metric: Metric) {
-  const scaling = 0.72 + (metric.playerId % 4) * 0.08;
-  return getAcuteLoad(metric) / scaling;
-}
-
-function getAcwr(metric: Metric) {
-  const chronic = getChronicLoad(metric);
-  if (chronic <= 0) return 0;
-  return +(getAcuteLoad(metric) / chronic).toFixed(2);
-}
-
-function getStatus(acwr: number): TrafficStatus {
-  if (acwr > 1.4) return "danger";
-  if (acwr > 1.2) return "caution";
-  return "optimal";
-}
-
-function buildWeeklyLoad(metric: Metric) {
-  const base = getAcuteLoad(metric);
-  return Array.from({ length: 7 }, (_, index) => {
-    const oscillation = Math.sin((index + metric.playerId) * 0.8) * 0.08;
-    const progression = index * 0.02;
-    return +(base * (0.86 + progression + oscillation)).toFixed(1);
-  });
-}
-
-function getSessionContext(session: Session): "Partido" | "Entrenamiento" {
-  const hasMatchSegments = session.segments?.some((segment) => segment.name === "Primer Tiempo" || segment.name === "Segundo Tiempo");
-  return hasMatchSegments ? "Partido" : "Entrenamiento";
-}
-
-function buildTeamLoadIndex(metrics: Metric[]) {
-  if (!metrics.length) return 0;
-  const total = metrics.reduce((sum, metric) => sum + getAcuteLoad(metric), 0);
-  return +(total / metrics.length).toFixed(1);
-}
-
-function Sparkline({ values }: { values: number[] }) {
-  const width = 160;
-  const height = 44;
-  const max = Math.max(...values, 1);
-  const min = Math.min(...values, 0);
-  const range = Math.max(max - min, 1);
-
-  const points = values
-    .map((value, index) => {
-      const x = (index / (values.length - 1)) * width;
-      const y = height - ((value - min) / range) * (height - 6) - 3;
-      return `${x},${y}`;
-    })
-    .join(" ");
-
-  return (
-    <svg viewBox={`0 0 ${width} ${height}`} className="h-11 w-full">
-      <polyline
-        points={points}
-        fill="none"
-        stroke="#0085CB"
-        strokeWidth={2.5}
-        strokeLinecap="round"
-      />
-      <polyline
-        points={`${points} ${width},${height} 0,${height}`}
-        fill="rgba(0,133,203,0.08)"
-        stroke="none"
-      />
-      {values.map((value, index) => {
-        const x = (index / (values.length - 1)) * width;
-        const y = height - ((value - min) / range) * (height - 6) - 3;
-        return <circle key={index} cx={x} cy={y} r={1.9} fill="#0085CB" />;
-      })}
-    </svg>
+    <span className={`inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-sm font-bold ${config ? `${config.bg} ${config.text}` : "bg-slate-50 text-slate-600"}`}>
+      <span className={`size-1.5 rounded-full ${config?.dot ?? "bg-slate-300"}`} />
+      {ratio.toFixed(2)}
+    </span>
   );
 }
 
 export default function DashboardPage() {
-  const [metrics, setMetrics] = useState<Metric[]>([]);
-  const [session, setSession] = useState<Session | null>(null);
-  const [weeklySnapshots, setWeeklySnapshots] = useState<WeeklySnapshot[]>([]);
-  const [activeFilter, setActiveFilter] = useState("all");
+  const [data, setData] = useState<AcwrResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [activeFilter, setActiveFilter] = useState("all");
+  const [selectedWeek, setSelectedWeek] = useState<string>("");
 
-  const loadData = useCallback(async (segmentId: string | null) => {
+  const loadData = useCallback(async (weekParam?: string) => {
     setLoading(true);
-
-    const sessions = await fetch("/api/sessions").then((response) => response.json() as Promise<Session[]>);
-
-    if (!sessions.length) {
-      setSession(null);
-      setMetrics([]);
-      setWeeklySnapshots([]);
-      setLoading(false);
-      return;
+    const url = weekParam ? `/api/acwr?${weekParam}` : "/api/acwr";
+    const res = await fetch(url);
+    const json: AcwrResponse = await res.json();
+    setData(json);
+    if (!selectedWeek && json.year && json.week) {
+      setSelectedWeek(`${json.year}-${json.week}`);
     }
-
-    const latestSession = sessions[0];
-    setSession(latestSession);
-
-    const segParam = segmentId ? `&segmentId=${segmentId}` : "&segmentId=null";
-    const latestData = await fetch(`/api/metrics?sessionId=${latestSession.id}${segParam}`).then((response) => response.json() as Promise<MetricsResponse>);
-    setMetrics(latestData?.metrics || []);
-
-    const weekSessions = sessions.slice(0, 7);
-    const weeklyData = await Promise.all(
-      weekSessions.map(async (weekSession) => {
-        const weekMetrics = await fetch(`/api/metrics?sessionId=${weekSession.id}&segmentId=null`)
-          .then((response) => response.json() as Promise<MetricsResponse>)
-          .then((data) => data.metrics || []);
-
-        return {
-          sessionId: weekSession.id,
-          date: weekSession.date,
-          dayLabel: new Date(weekSession.date).toLocaleDateString("es-CL", { weekday: "short" }),
-          context: getSessionContext(weekSession),
-          loadIndex: buildTeamLoadIndex(weekMetrics),
-          players: weekMetrics.length,
-        } satisfies WeeklySnapshot;
-      })
-    );
-
-    setWeeklySnapshots(weeklyData.reverse());
     setLoading(false);
-  }, []);
+  }, [selectedWeek]);
 
   useEffect(() => {
-    // Defer initial data bootstrap to avoid synchronous state updates in effect body.
-    queueMicrotask(() => {
-      void loadData(null);
-    });
+    void loadData();
   }, [loadData]);
 
-  const filteredMetrics = activeFilter === "all"
-    ? metrics
-    : metrics.filter((m) => getStatus(getAcwr(m)) === activeFilter);
-
-  const counts = {
-    all: metrics.length,
-    optimal: metrics.filter((m) => getStatus(getAcwr(m)) === "optimal").length,
-    caution: metrics.filter((m) => getStatus(getAcwr(m)) === "caution").length,
-    danger: metrics.filter((m) => getStatus(getAcwr(m)) === "danger").length,
+  const handleWeekChange = (value: string) => {
+    setSelectedWeek(value);
+    const [year, week] = value.split("-");
+    void loadData(`year=${year}&week=${week}`);
   };
 
-  const isMatchContext = session ? getSessionContext(session) === "Partido" : false;
+  const players = data?.players ?? [];
+
+  const counts = {
+    all: players.length,
+    optimo: players.filter((p) => p.overallRisk === "optimo").length,
+    cuidado: players.filter((p) => p.overallRisk === "cuidado").length,
+    alto: players.filter((p) => p.overallRisk === "alto").length,
+    bajo: players.filter((p) => p.overallRisk === "bajo").length,
+  };
+
+  const filtered =
+    activeFilter === "all"
+      ? players
+      : players.filter((p) => p.overallRisk === activeFilter);
 
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar />
       <main className="flex-1 flex flex-col overflow-y-auto bg-white pb-20 md:pb-0">
+        {/* Header */}
         <header className="border-b border-slate-200 bg-white px-4 py-5 md:px-8">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
-              <h1 className="text-3xl font-black tracking-tight text-slate-900">Hub de Microciclo y Disponibilidad</h1>
+              <h1 className="text-3xl font-black tracking-tight text-slate-900">
+                Monitor ACWR
+              </h1>
               <p className="mt-1 text-sm font-medium text-slate-500">
-                {session
-                  ? `${isMatchContext ? "Datos de Partido" : "Datos de Entrenamiento"} · ${new Date(session.date).toLocaleDateString("es-CL", { day: "2-digit", month: "short" })} · Indice de carga del plantel`
-                  : "Cargando microciclo competitivo..."}
+                Ratio Carga Aguda:Crónica del plantel ·{" "}
+                {data ? `Semana ${data.week}, ${data.year}` : "Cargando..."}
               </p>
             </div>
             <div className="flex items-center gap-3">
-              <SegmentFilter onChange={(segId) => loadData(segId)} />
-              <Link href="/ingesta" className="inline-flex items-center gap-2 rounded-lg bg-[#0085CB] px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90">
+              {/* Week Selector */}
+              {data && data.availableWeeks.length > 0 && (
+                <div className="relative">
+                  <select
+                    value={selectedWeek}
+                    onChange={(e) => handleWeekChange(e.target.value)}
+                    className="appearance-none rounded-xl border border-slate-200 bg-slate-50 pl-4 pr-9 py-2 text-sm font-semibold text-slate-800 outline-none focus:border-[#0085CB] focus:ring-2 focus:ring-[#0085CB]/20"
+                  >
+                    {data.availableWeeks.map((w) => (
+                      <option key={`${w.year}-${w.weekNumber}`} value={`${w.year}-${w.weekNumber}`}>
+                        S{w.weekNumber} · {w.year}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="material-symbols-outlined pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 text-base">
+                    expand_more
+                  </span>
+                </div>
+              )}
+              <Link
+                href="/ingesta"
+                className="inline-flex items-center gap-2 rounded-lg bg-[#0085CB] px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+              >
                 <span className="material-symbols-outlined text-base">upload_file</span>
-                Subir STATSports
+                Subir CSV
               </Link>
             </div>
           </div>
         </header>
 
         <div className="space-y-6 p-4 md:p-8">
-          <section className="grid grid-cols-1 gap-4 md:grid-cols-4">
+          {/* KPI Cards */}
+          <section className="grid grid-cols-2 gap-4 md:grid-cols-5">
             <div className="rounded-2xl border border-slate-200 p-4">
-              <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Jugadores Monitoreados</p>
-              <p className="mt-1 text-3xl font-black text-slate-900">{metrics.length}</p>
+              <p className="text-xs font-bold uppercase tracking-widest text-slate-400">
+                Jugadores
+              </p>
+              <p className="mt-1 text-3xl font-black text-slate-900">{counts.all}</p>
             </div>
             <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4">
-              <p className="text-xs font-bold uppercase tracking-widest text-emerald-700">Optimo</p>
-              <p className="mt-1 text-3xl font-black text-emerald-700">{counts.optimal}</p>
+              <p className="text-xs font-bold uppercase tracking-widest text-emerald-700">
+                Óptimo
+              </p>
+              <p className="mt-1 text-3xl font-black text-emerald-700">{counts.optimo}</p>
             </div>
             <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4">
-              <p className="text-xs font-bold uppercase tracking-widest text-amber-700">Cuidado</p>
-              <p className="mt-1 text-3xl font-black text-amber-700">{counts.caution}</p>
+              <p className="text-xs font-bold uppercase tracking-widest text-amber-700">
+                Cuidado
+              </p>
+              <p className="mt-1 text-3xl font-black text-amber-700">{counts.cuidado}</p>
             </div>
             <div className="rounded-2xl border border-rose-200 bg-rose-50/70 p-4">
-              <p className="text-xs font-bold uppercase tracking-widest text-rose-700">Riesgo</p>
-              <p className="mt-1 text-3xl font-black text-rose-700">{counts.danger}</p>
+              <p className="text-xs font-bold uppercase tracking-widest text-rose-700">
+                Alto Riesgo
+              </p>
+              <p className="mt-1 text-3xl font-black text-rose-700">{counts.alto}</p>
+            </div>
+            <div className="rounded-2xl border border-sky-200 bg-sky-50/70 p-4">
+              <p className="text-xs font-bold uppercase tracking-widest text-sky-700">
+                Bajo
+              </p>
+              <p className="mt-1 text-3xl font-black text-sky-700">{counts.bajo}</p>
             </div>
           </section>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-4 md:p-5">
-            <div className="mb-4 flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-bold text-slate-900">Resumen Semanal Completo</h2>
-                <p className="text-xs font-medium text-slate-500">Microciclo integrado con entrenamiento y partido</p>
-              </div>
-              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">Ultimas 7 sesiones</span>
-            </div>
-
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-7">
-              {weeklySnapshots.map((snapshot) => (
-                <div key={snapshot.sessionId} className="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs font-black uppercase tracking-widest text-slate-500">{snapshot.dayLabel}</p>
-                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${snapshot.context === "Partido" ? "bg-[#0085CB]/10 text-[#0085CB]" : "bg-slate-200 text-slate-700"}`}>
-                      {snapshot.context}
-                    </span>
-                  </div>
-                  <p className="mt-2 text-xl font-black text-slate-900">{snapshot.loadIndex.toFixed(1)}</p>
-                  <p className="text-[11px] font-medium text-slate-500">Indice de Carga</p>
-                  <p className="mt-2 text-[11px] text-slate-500">{new Date(snapshot.date).toLocaleDateString("es-CL", { day: "2-digit", month: "short" })} · {snapshot.players} jugadores</p>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
-            {statusFilters.map((f) => (
+          {/* Filter Buttons */}
+          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+            {filterButtons.map((f) => (
               <button
-                key={f.filter}
-                onClick={() => setActiveFilter(f.filter)}
-                className={`flex min-w-max items-center gap-2 rounded-xl border px-4 py-2 transition-all ${f.classes} ${activeFilter === f.filter ? "ring-2 ring-[#0085CB]/30" : ""}`}
+                key={f.key}
+                onClick={() => setActiveFilter(f.key)}
+                className={`flex min-w-max items-center gap-2 rounded-xl border px-4 py-2 transition-all ${f.classes} ${
+                  activeFilter === f.key ? "ring-2 ring-[#0085CB]/30" : ""
+                }`}
               >
                 <span className="material-symbols-outlined text-[20px]">{f.icon}</span>
-                <span className="text-sm font-bold">{f.label} ({counts[f.filter as keyof typeof counts]})</span>
+                <span className="text-sm font-bold">
+                  {f.label} ({counts[f.key as keyof typeof counts]})
+                </span>
               </button>
             ))}
           </div>
 
+          {/* ACWR Table */}
           {loading ? (
             <div className="flex items-center justify-center py-20">
               <div className="size-8 animate-spin rounded-full border-3 border-[#0085CB] border-t-transparent" />
             </div>
+          ) : players.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20">
+              <span className="material-symbols-outlined text-6xl text-slate-300">sports_soccer</span>
+              <h3 className="mt-4 text-xl font-bold text-slate-400">Sin datos ACWR</h3>
+              <p className="mt-1 text-sm text-slate-400">
+                Sube un CSV o ejecuta el seeder para comenzar.
+              </p>
+            </div>
           ) : (
-            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-              {filteredMetrics.map((m) => {
-                const acwr = getAcwr(m);
-                const status = getStatus(acwr);
-                const config = statusConfig[status];
-                const weekly = buildWeeklyLoad(m);
-                return (
-                  <Link
-                    key={m.id}
-                    href={`/jugadores/${m.playerId}`}
-                    className={`group rounded-2xl border bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg ${config.accent}`}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <h3 className="text-lg font-bold leading-tight text-slate-900">{m.player.name}</h3>
-                        <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">{m.player.position || "Plantel Profesional"}</p>
-                      </div>
-                      <span className={`rounded-full px-2.5 py-1 text-[10px] font-black uppercase ${config.badge}`}>{config.label}</span>
-                    </div>
-
-                    <div className="mt-4 rounded-xl border border-slate-100 bg-slate-50 p-3">
-                      <div className="flex items-center justify-between">
-                        <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Ratio Carga Aguda:Cronica</p>
-                        <span className={`size-2.5 rounded-full ${config.dot}`} />
-                      </div>
-                      <p className="mt-1 text-3xl font-black text-slate-900">{acwr.toFixed(2)}</p>
-                      <p className="text-xs font-medium text-slate-500">Tendencia de carga · ultimos 7 dias</p>
-                      <div className="mt-2">
-                        <Sparkline values={weekly} />
-                      </div>
-                    </div>
-
-                    <div className="mt-4 grid grid-cols-3 gap-2 text-center">
-                      <div className="rounded-lg bg-slate-50 p-2">
-                        <p className="text-[10px] font-bold uppercase text-slate-400">Dist Total</p>
-                        <p className="text-sm font-bold text-slate-900">{(m.totalDistance / 1000).toFixed(1)} km</p>
-                      </div>
-                      <div className="rounded-lg bg-slate-50 p-2">
-                        <p className="text-[10px] font-bold uppercase text-slate-400">D/Min</p>
-                        <p className="text-sm font-bold text-slate-900">{m.dMin}</p>
-                      </div>
-                      <div className="rounded-lg bg-slate-50 p-2">
-                        <p className="text-[10px] font-bold uppercase text-slate-400">Vel Max</p>
-                        <p className="text-sm font-bold text-slate-900">{m.maxSpeed.toFixed(1)}</p>
-                      </div>
-                    </div>
-                  </Link>
-                );
-              })}
+            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+              <div className="border-b border-slate-100 bg-slate-50/70 px-6 py-4">
+                <h2 className="text-lg font-bold text-slate-900">
+                  Tabla ACWR del Plantel
+                </h2>
+                <p className="text-xs font-medium text-slate-500">
+                  Ratios calculados con fórmula de carga crónica 28 días · Semáforo de riesgo
+                </p>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead className="border-b border-slate-100 bg-slate-50 text-xs font-bold uppercase tracking-wide text-slate-600">
+                    <tr>
+                      <th className="px-5 py-3 whitespace-nowrap">Jugador</th>
+                      <th className="px-5 py-3 whitespace-nowrap">Posición</th>
+                      <th className="px-5 py-3 whitespace-nowrap text-right">Dist. Semanal</th>
+                      <th className="px-5 py-3 whitespace-nowrap text-center">A:C Distancia</th>
+                      <th className="px-5 py-3 whitespace-nowrap text-center">A:C Alta Vel.</th>
+                      <th className="px-5 py-3 whitespace-nowrap text-center">A:C Impactos</th>
+                      <th className="px-5 py-3 whitespace-nowrap text-center">Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {filtered.map((player) => (
+                      <tr
+                        key={player.playerId}
+                        className="transition-colors hover:bg-slate-50/50"
+                      >
+                        <td className="px-5 py-3.5">
+                          <Link
+                            href={`/jugadores`}
+                            className="font-semibold text-slate-900 hover:text-[#0085CB] transition-colors"
+                          >
+                            {player.playerName}
+                          </Link>
+                        </td>
+                        <td className="px-5 py-3.5 text-slate-600">
+                          {positionLabels[player.position] ?? player.position}
+                        </td>
+                        <td className="px-5 py-3.5 text-right font-medium text-slate-700">
+                          {player.currentWeek
+                            ? `${(player.currentWeek.totalDistance / 1000).toFixed(1)} km`
+                            : "—"}
+                        </td>
+                        <td className="px-5 py-3.5 text-center">
+                          <RatioCell ratio={player.ratioDistance28} risk={player.riskDistance} />
+                        </td>
+                        <td className="px-5 py-3.5 text-center">
+                          <RatioCell ratio={player.ratioHighVelocity28} risk={player.riskHighVelocity} />
+                        </td>
+                        <td className="px-5 py-3.5 text-center">
+                          <RatioCell ratio={player.ratioMechImpacts28} risk={player.riskMechImpacts} />
+                        </td>
+                        <td className="px-5 py-3.5 text-center">
+                          <AcwrBadge risk={player.overallRisk} />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
+
+          {/* Legend */}
+          <div className="rounded-xl bg-slate-50 border border-slate-200 p-4">
+            <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-3">
+              Guía de Semáforo ACWR
+            </p>
+            <div className="flex flex-wrap gap-4">
+              <div className="flex items-center gap-2">
+                <span className="size-3 rounded-full bg-sky-500" />
+                <span className="text-xs font-medium text-slate-600">{"< 0.80 — Bajo (subentrenamiento)"}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="size-3 rounded-full bg-emerald-500" />
+                <span className="text-xs font-medium text-slate-600">0.80 – 1.30 — Óptimo</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="size-3 rounded-full bg-amber-500" />
+                <span className="text-xs font-medium text-slate-600">1.31 – 1.50 — Cuidado</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="size-3 rounded-full bg-rose-500" />
+                <span className="text-xs font-medium text-slate-600">{"> 1.50 — Alto Riesgo (sobrecarga)"}</span>
+              </div>
+            </div>
+          </div>
         </div>
       </main>
     </div>

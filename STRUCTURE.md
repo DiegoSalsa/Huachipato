@@ -1,84 +1,105 @@
-# Estructura del Proyecto
+# Estructura del Proyecto — Huachipato ACWR Monitor
 
 ## Objetivo
-Separar claramente responsabilidades:
-- `frontend/`: UI, rutas web y capa HTTP.
-- `backend/`: logica de negocio y acceso a datos.
 
-## Arbol principal
+Separar responsabilidades:
+- `frontend/`: UI, páginas, route handlers HTTP.
+- `backend/`: lógica de negocio, servicios, acceso a datos.
+- `prisma/`: esquema de BD y seed.
+
+## Árbol principal
 
 ```text
 huachipato-app/
-|-- frontend/
-|   |-- app/
-|   |   |-- api/                # Route handlers de Next (capa HTTP)
-|   |   |-- jugadores/
-|   |   |-- ingesta/
-|   |   |-- medico/
-|   |   |-- rendimiento/
-|   |   |-- layout.tsx
-|   |   |-- page.tsx
-|   |   `-- globals.css
-|   |-- components/             # Componentes React reutilizables
-|   `-- lib/                    # Tipos y utilidades de frontend
-|
-|-- backend/
-|   |-- api/                    # Servicios de dominio (logica de negocio)
-|   |   |-- medical.ts
-|   |   |-- metrics.ts
-|   |   |-- players.ts
-|   |   |-- sessions.ts
-|   |   `-- upload.ts
-|   `-- lib/
-|       `-- db.ts               # Cliente Prisma
-|
-|-- prisma/
-|   |-- schema.prisma
-|   `-- seed.ts
-|-- public/
-|-- package.json
-|-- tsconfig.json
-`-- README.md
+├── backend/
+│   ├── api/                         # Servicios de dominio (lógica de negocio)
+│   │   ├── players.ts               # CRUD de jugadores
+│   │   └── upload.ts                # Parseo CSV/Excel (diario + semanal)
+│   ├── lib/                         # Utilidades compartidas
+│   │   ├── db.ts                    # Cliente Prisma (singleton)
+│   │   └── utils.ts                 # normalizeName, parseFloat/Int, cleanNumeric
+│   └── services/                    # Servicios de cálculo
+│       ├── acwr.ts                  # Motor ACWR (ratios, semáforo, riesgo)
+│       └── weekly-aggregator.ts     # Agregador diario → semanal
+│
+├── frontend/
+│   ├── app/
+│   │   ├── api/                     # Route Handlers (capa HTTP)
+│   │   │   ├── acwr/route.ts        # GET /api/acwr
+│   │   │   ├── players/route.ts     # GET|POST /api/players
+│   │   │   └── upload/route.ts      # POST /api/upload
+│   │   ├── ingesta/page.tsx         # Página de ingesta (diario + semanal)
+│   │   ├── jugadores/page.tsx       # Página de jugadores
+│   │   ├── page.tsx                 # Dashboard ACWR (página principal)
+│   │   ├── layout.tsx               # Layout raíz
+│   │   └── globals.css              # Estilos globales + Tailwind
+│   └── components/                  # Componentes React reutilizables
+│       ├── AcwrBadge.tsx            # Badge de riesgo (semáforo 4 colores)
+│       └── Sidebar.tsx              # Navegación lateral + móvil
+│
+├── prisma/
+│   ├── schema.prisma                # Esquema PostgreSQL (players, gps, weekly)
+│   └── seed.ts                      # Seed de limpieza (borra todo, resetea IDs)
+│
+├── .env                             # DATABASE_URL
+├── package.json
+├── tsconfig.json
+└── next.config.ts
 ```
 
 ## Regla de dependencias
 
 ```text
-frontend/app/* (paginas y route handlers)
-  -> backend/api/* (servicios)
-  -> backend/lib/db.ts (Prisma)
-  -> base de datos
+frontend/app/page.tsx (UI)
+  → fetch("/api/acwr")
+    → frontend/app/api/acwr/route.ts (HTTP)
+      → backend/services/acwr.ts (lógica)
+        → backend/lib/db.ts (Prisma)
+          → PostgreSQL (huachipato3)
 ```
 
 ## Responsabilidades por capa
 
-### Frontend
-- Renderizar UI.
-- Consumir endpoints (`/api/*`).
-- En `frontend/app/api/*`: parsear request y devolver response.
-- No contener consultas Prisma directas.
+### `backend/lib/`
+- **db.ts**: Singleton de PrismaClient (hot-reload safe).
+- **utils.ts**: Funciones puras reutilizables (normalización, parsing).
 
-### Backend
-- Centralizar la logica de negocio.
-- Validar entradas de dominio.
-- Ejecutar operaciones de base de datos.
-- Ser reutilizable desde cualquier route handler.
+### `backend/api/`
+- Lógica de negocio independiente del framework HTTP.
+- Validación de dominio.
+- Operaciones de base de datos.
 
-## Convencion de imports
+### `backend/services/`
+- Cálculos complejos (ACWR, agregación semanal).
+- No dependen del framework HTTP.
+
+### `frontend/app/api/`
+- Route Handlers de Next.js (parsean request → llaman backend → devuelven response).
+- NO contienen lógica de negocio.
+
+### `frontend/components/`
+- Componentes React reutilizables.
+- Solo UI, sin lógica de datos.
+
+## Convención de imports
 
 ```ts
-// Route handlers -> backend
+// Route handlers → backend
 import { listPlayers } from "@/backend/api/players";
+import { computeAllPlayersACWR } from "@/backend/services/acwr";
 
-// Backend -> db
+// Backend → db + utils
 import { prisma } from "@/backend/lib/db";
+import { normalizeName, parseFloatSafe } from "@/backend/lib/utils";
 
-// Frontend UI -> componentes/tipos
-import { Header } from "@/components";
-import type { PlayerSummary } from "@/lib/types";
+// Frontend UI → componentes
+import Sidebar from "@/components/Sidebar";
+import AcwrBadge from "@/components/AcwrBadge";
 ```
 
-## Checklist rapido
-- Si un archivo usa Prisma/XLSX para persistencia, debe vivir en `backend/`.
-- Si un archivo devuelve `NextResponse` o lee `NextRequest`, debe vivir en `frontend/app/api/`.
-- Si un cambio de negocio afecta varios endpoints, se implementa una vez en `backend/api/*`.
+## Checklist rápido
+
+- ✅ Si usa Prisma/XLSX → vive en `backend/`
+- ✅ Si devuelve `NextResponse` → vive en `frontend/app/api/`
+- ✅ Si es UI React → vive en `frontend/components/` o `frontend/app/`
+- ✅ Si es una función pura reutilizable → vive en `backend/lib/utils.ts`

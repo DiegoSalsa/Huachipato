@@ -1,24 +1,53 @@
-import { processUpload } from "@/backend/api/upload";
+import { processDailyUpload, processWeeklyUpload } from "@/backend/api/upload";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
-    const sessionDate = formData.get("date") as string | null;
+    const mode = formData.get("mode") as string | null; // "daily" or "weekly"
 
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    const result = await processUpload(file, sessionDate, formData.get("segment") as string | null);
-    return NextResponse.json(result);
+    if (mode === "weekly") {
+      const year = parseInt(formData.get("year") as string, 10);
+      const weekNumber = parseInt(formData.get("weekNumber") as string, 10);
+
+      if (!Number.isFinite(year) || !Number.isFinite(weekNumber)) {
+        return NextResponse.json(
+          { error: "Año y semana son obligatorios para carga semanal" },
+          { status: 400 },
+        );
+      }
+
+      if (weekNumber < 1 || weekNumber > 53) {
+        return NextResponse.json(
+          { error: "Número de semana debe estar entre 1 y 53" },
+          { status: 400 },
+        );
+      }
+
+      const result = await processWeeklyUpload(file, year, weekNumber);
+      return NextResponse.json(result);
+    } else {
+      // Default: daily upload
+      const reportDate = (formData.get("date") as string) || new Date().toISOString();
+      const result = await processDailyUpload(file, reportDate);
+      return NextResponse.json(result);
+    }
   } catch (err) {
     if (err instanceof Error && err.message === "EMPTY_SPREADSHEET") {
-      return NextResponse.json({ error: "Empty spreadsheet" }, { status: 400 });
+      return NextResponse.json(
+        { error: "El archivo está vacío" },
+        { status: 400 },
+      );
     }
-
     console.error("Upload error:", err);
-    return NextResponse.json({ error: "Failed to process file" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Error al procesar archivo" },
+      { status: 500 },
+    );
   }
 }

@@ -11,10 +11,8 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { href: "/", icon: "dashboard", label: "Panel Principal" },
+  { href: "/", icon: "monitoring", label: "Monitor ACWR" },
   { href: "/jugadores", icon: "groups", label: "Jugadores" },
-  { href: "/medico", icon: "medical_services", label: "Médico y Lesiones" },
-  { href: "/rendimiento", icon: "analytics", label: "Rendimiento" },
   { href: "/ingesta", icon: "cloud_upload", label: "Ingesta de Datos" },
 ];
 
@@ -43,7 +41,7 @@ export default function Sidebar() {
         </div>
         <div>
           <h1 className="text-sm font-bold uppercase tracking-wider">Huachipato</h1>
-          <p className="text-[10px] text-white/70 font-medium">Análisis Deportivo</p>
+          <p className="text-[10px] text-white/70 font-medium">Monitor ACWR</p>
         </div>
       </div>
 
@@ -69,13 +67,9 @@ export default function Sidebar() {
 
       {/* Bottom */}
       <div className="p-4 border-t border-white/10">
-        <Link
-          href="/configuracion"
-          className="flex items-center gap-3 px-3 py-2 text-white/80 hover:bg-white/10 rounded-lg transition-colors"
-        >
-          <span className="material-symbols-outlined text-xl">settings</span>
-          <span className="text-sm font-medium">Configuración</span>
-        </Link>
+        <div className="px-3 py-2 text-white/40 text-[10px] font-medium">
+          Sistema ACWR v1.0
+        </div>
       </div>
       </aside>
 
