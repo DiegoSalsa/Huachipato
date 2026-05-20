@@ -40,6 +40,19 @@ export interface PlayerAcwr {
   riskHighVelocity: AcwrRisk | null;
   riskMechImpacts: AcwrRisk | null;
   overallRisk: AcwrRisk | null;
+  
+  // 21 days metrics (3 weeks)
+  chronicDistance21: number | null;
+  chronicHighVelocity21: number | null;
+  chronicMechImpacts21: number | null;
+  ratioDistance21: number | null;
+  ratioHighVelocity21: number | null;
+  ratioMechImpacts21: number | null;
+  riskDistance21: AcwrRisk | null;
+  riskHighVelocity21: AcwrRisk | null;
+  riskMechImpacts21: AcwrRisk | null;
+  overallRisk21: AcwrRisk | null;
+
   weeksAvailable: number;
 }
 
@@ -172,6 +185,16 @@ export async function computePlayerACWR(
       riskHighVelocity: null,
       riskMechImpacts: null,
       overallRisk: null,
+      chronicDistance21: null,
+      chronicHighVelocity21: null,
+      chronicMechImpacts21: null,
+      ratioDistance21: null,
+      ratioHighVelocity21: null,
+      ratioMechImpacts21: null,
+      riskDistance21: null,
+      riskHighVelocity21: null,
+      riskMechImpacts21: null,
+      overallRisk21: null,
       weeksAvailable: foundCount,
     };
   }
@@ -209,6 +232,20 @@ export async function computePlayerACWR(
   const riskMechImpacts = classifyRisk(ratioMechImpacts28);
   const overallRisk = worstRisk([riskDistance, riskHighVelocity, riskMechImpacts]);
 
+  // ─── CÁLCULO ACWR 21 DÍAS ───────────────────────────────────────────────
+  const chronicDistance21 = (slots[0].totalDistance + slots[1].totalDistance + slots[2].totalDistance) / 3;
+  const chronicHighVelocity21 = (slots[0].highVelocity + slots[1].highVelocity + slots[2].highVelocity) / 3;
+  const chronicMechImpacts21 = (slots[0].mechanicalImpacts + slots[1].mechanicalImpacts + slots[2].mechanicalImpacts) / 3;
+
+  const ratioDistance21 = computeRatio(acuteDistance, chronicDistance21);
+  const ratioHighVelocity21 = computeRatio(acuteHighVelocity, chronicHighVelocity21);
+  const ratioMechImpacts21 = computeRatio(acuteMechImpacts, chronicMechImpacts21);
+
+  const riskDistance21 = classifyRisk(ratioDistance21);
+  const riskHighVelocity21 = classifyRisk(ratioHighVelocity21);
+  const riskMechImpacts21 = classifyRisk(ratioMechImpacts21);
+  const overallRisk21 = worstRisk([riskDistance21, riskHighVelocity21, riskMechImpacts21]);
+
   return {
     playerId,
     playerName,
@@ -231,6 +268,16 @@ export async function computePlayerACWR(
     riskHighVelocity,
     riskMechImpacts,
     overallRisk,
+    chronicDistance21,
+    chronicHighVelocity21,
+    chronicMechImpacts21,
+    ratioDistance21,
+    ratioHighVelocity21,
+    ratioMechImpacts21,
+    riskDistance21,
+    riskHighVelocity21,
+    riskMechImpacts21,
+    overallRisk21,
     weeksAvailable: foundCount,
   };
 }
