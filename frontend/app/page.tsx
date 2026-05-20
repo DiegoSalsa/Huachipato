@@ -76,14 +76,16 @@ export default function DashboardPage() {
     const res = await fetch(url);
     const json: AcwrResponse = await res.json();
     setData(json);
-    if (!selectedWeek && json.year && json.week) {
-      setSelectedWeek(`${json.year}-${json.week}`);
-    }
     setLoading(false);
-  }, [selectedWeek]);
+    return json;
+  }, []);
 
   useEffect(() => {
-    void loadData();
+    void loadData().then((json) => {
+      if (json?.year && json?.week) {
+        setSelectedWeek(`${json.year}-${json.week}`);
+      }
+    });
   }, [loadData]);
 
   const handleWeekChange = (value: string) => {

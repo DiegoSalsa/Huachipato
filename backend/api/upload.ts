@@ -1,10 +1,13 @@
 import { prisma } from "@/backend/lib/db";
 import { normalizeName, parseFloatSafe, parseIntSafe } from "@/backend/lib/utils";
 import * as XLSX from "xlsx";
+import { parse } from "csv-parse/sync";
 import {
   aggregateAllAffectedWeeks,
+  aggregateWeekForPlayer,
   getISOWeek,
 } from "@/backend/services/weekly-aggregator";
+import { aggregateDailySessionsBatch } from "@/backend/services/daily-aggregator";
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -14,6 +17,7 @@ type DailyUploadResult = {
   imported: number;
   playersCreated: number;
   weeksAggregated: number;
+  sessionNumber: number;
   date: string;
   columns: string[];
   preview: Record<string, unknown>[];
@@ -32,7 +36,8 @@ type WeeklyUploadResult = {
 
 export type UploadResult = DailyUploadResult | WeeklyUploadResult;
 
-// ─── Column Mapping ──────────────────────────────────────────────────
+// ─── Unified Column Mapping ─────────────────────────────────────────
+// Used for BOTH Excel header mapping and CSV header mapping.
 
 const COL_MAP: Record<string, string> = {
   // Player name
@@ -47,6 +52,8 @@ const COL_MAP: Record<string, string> = {
   // HSR
   HSR: "hsr", hsr: "hsr",
   "High Speed Running": "hsr", "Alta Velocidad": "hsr",
+  "High Speed Running (Relative)": "hsr",
+  "high speed running (relative)": "hsr",
 
   // Sprint distance
   "Sprint Distance": "sprintDistance", "sprint distance": "sprintDistance",
@@ -60,10 +67,14 @@ const COL_MAP: Record<string, string> = {
   // Accelerations
   Acc: "accelerations", acc: "accelerations",
   Accelerations: "accelerations", Aceleraciones: "accelerations",
+  "Accelerations (Relative)": "accelerations",
+  "accelerations (relative)": "accelerations",
 
   // Decelerations
   Dec: "decelerations", dec: "decelerations",
   Decelerations: "decelerations", Desaceleraciones: "decelerations",
+  "Decelerations (Relative)": "decelerations",
+  "decelerations (relative)": "decelerations",
 
   // Max speed
   "Max Spd": "maxSpeed", "Max Speed": "maxSpeed",
@@ -77,53 +88,124 @@ const COL_MAP: Record<string, string> = {
 
 // ─── Helpers ─────────────────────────────────────────────────────────
 
-function parseRows(rawData: Record<string, unknown>[]): Record<string, unknown>[] {
-  return rawData.map((row) => {
-    const normalized: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(row)) {
-      const mapped = COL_MAP[key] || COL_MAP[key.trim()];
-      if (mapped) {
-        normalized[mapped] = value;
-      }
-    }
-    return normalized;
-  });
-}
-
-function readSpreadsheet(buffer: Buffer) {
-  const workbook = XLSX.read(buffer, { type: "buffer" });
-  const sheetName = workbook.SheetNames[0];
-  const sheet = workbook.Sheets[sheetName];
-  return XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet);
+interface ParsedDailyRow {
+  name: string;
+  totalDistance: number;
+  hsr: number;
+  sprintDistance: number;
+  sprints: number;
+  accelerations: number;
+  decelerations: number;
 }
 
 /**
- * Read spreadsheet by COLUMN INDEX instead of header names.
- * This is critical for S-Files where headers change per week
- * (e.g. "Distancia total S19", "HSR S19").
- *
- * Index mapping:
- *   0 = Player Name
- *   1 = total_distance
- *   2 = hsr
- *   3 = sprint_distance
- *   4 = sprints
- *   5 = accelerations
- *   6 = decelerations
+ * Detect if a buffer is a CSV file (semicolon-delimited text)
+ * by checking the first bytes for text patterns.
  */
+function isCsvFile(buffer: Buffer, fileName?: string): boolean {
+  // Check file extension first
+  if (fileName) {
+    const ext = fileName.toLowerCase().split(".").pop();
+    if (ext === "csv") return true;
+    if (ext === "xlsx" || ext === "xls") return false;
+  }
+
+  // Fallback: sniff content — CSV files start with text, Excel starts with PK or binary
+  const header = buffer.subarray(0, 4);
+  // XLSX files start with PK (zip signature: 0x504B)
+  if (header[0] === 0x50 && header[1] === 0x4B) return false;
+  // XLS files start with D0 CF 11 E0 (OLE2)
+  if (header[0] === 0xD0 && header[1] === 0xCF) return false;
+  // Otherwise assume CSV
+  return true;
+}
+
+/**
+ * Parse a CSV buffer (semicolon-delimited) and map to daily rows.
+ */
+function parseCsvRows(buffer: Buffer): ParsedDailyRow[] {
+  const rawRows = parse(buffer, {
+    delimiter: ";",
+    columns: true,
+    skip_empty_lines: true,
+    trim: true,
+    bom: true,
+    relax_column_count: true,
+  }) as Record<string, string>[];
+
+  const parsed: ParsedDailyRow[] = [];
+
+  for (const raw of rawRows) {
+    const mapped: Record<string, unknown> = {};
+    for (const [csvHeader, value] of Object.entries(raw)) {
+      const trimmedHeader = csvHeader.trim();
+      const fieldName = COL_MAP[trimmedHeader];
+      if (fieldName) {
+        mapped[fieldName] = value;
+      }
+    }
+
+    const rawName = String(mapped.name ?? "").trim();
+    if (!rawName) continue;
+
+    parsed.push({
+      name: rawName,
+      totalDistance: parseFloatSafe(mapped.totalDistance),
+      hsr: parseFloatSafe(mapped.hsr),
+      sprintDistance: parseFloatSafe(mapped.sprintDistance),
+      sprints: parseIntSafe(mapped.sprints),
+      accelerations: parseIntSafe(mapped.accelerations),
+      decelerations: parseIntSafe(mapped.decelerations),
+    });
+  }
+
+  return parsed;
+}
+
+/**
+ * Parse an Excel buffer and map to daily rows.
+ */
+function parseExcelRows(buffer: Buffer): ParsedDailyRow[] {
+  const workbook = XLSX.read(buffer, { type: "buffer" });
+  const sheetName = workbook.SheetNames[0];
+  const sheet = workbook.Sheets[sheetName];
+  const rawData = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet);
+
+  const parsed: ParsedDailyRow[] = [];
+
+  for (const raw of rawData) {
+    const mapped: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(raw)) {
+      const fieldName = COL_MAP[key] || COL_MAP[key.trim()];
+      if (fieldName) {
+        mapped[fieldName] = value;
+      }
+    }
+
+    const rawName = String(mapped.name ?? "").trim();
+    if (!rawName) continue;
+
+    parsed.push({
+      name: rawName,
+      totalDistance: parseFloatSafe(mapped.totalDistance),
+      hsr: parseFloatSafe(mapped.hsr),
+      sprintDistance: parseFloatSafe(mapped.sprintDistance),
+      sprints: parseIntSafe(mapped.sprints),
+      accelerations: parseIntSafe(mapped.accelerations),
+      decelerations: parseIntSafe(mapped.decelerations),
+    });
+  }
+
+  return parsed;
+}
+
 function readSpreadsheetByIndex(buffer: Buffer): Record<string, unknown>[] {
   const workbook = XLSX.read(buffer, { type: "buffer" });
   const sheetName = workbook.SheetNames[0];
   const sheet = workbook.Sheets[sheetName];
-
-  // Read as array of arrays (no header mapping)
   const rawRows = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1 });
-
-  if (rawRows.length < 2) return []; // Need at least header + 1 data row
-
-  // Skip header row (index 0), process data rows
+  if (rawRows.length < 2) return [];
   const dataRows = rawRows.slice(1);
-
   return dataRows
     .map((cells) => {
       const arr = cells as unknown[];
@@ -138,11 +220,12 @@ function readSpreadsheetByIndex(buffer: Buffer): Record<string, unknown>[] {
       };
     })
     .filter((row) => {
-      // Filter out rows with no player name
       const name = String(row.name ?? "").trim();
       return name.length > 0;
     });
 }
+
+// ─── Player helpers ──────────────────────────────────────────────────
 
 async function findOrCreatePlayer(rawName: string) {
   const name = normalizeName(rawName);
@@ -155,103 +238,151 @@ async function findOrCreatePlayer(rawName: string) {
     });
     return { player, created: true };
   }
-  // Player already exists — do NOT overwrite position
   return { player, created: false };
 }
 
-// ─── Daily Upload ────────────────────────────────────────────────────
+async function findOrCreatePlayerTx(
+  tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
+  rawName: string,
+): Promise<{ playerId: string; created: boolean }> {
+  const name = normalizeName(rawName);
+  if (!name) throw new Error(`Invalid player name: "${rawName}"`);
+
+  const existing = await tx.player.findUnique({ where: { name } });
+  if (existing) {
+    return { playerId: existing.id, created: false };
+  }
+
+  const created = await tx.player.create({
+    data: { name, position: "MEDIOCAMPISTA" },
+  });
+  return { playerId: created.id, created: true };
+}
+
+// ─── Daily Upload (Unified: CSV + Excel) ─────────────────────────────
+//
+// Auto-detects file format (CSV or Excel), parses rows, and persists
+// through the session-based transactional flow:
+//
+//   file → parse → gps_daily_sessions → aggregate → gps_daily_reports → weekly_stats
+//
+// Supports multiple sessions per day (AM/PM double sessions).
 
 export async function processDailyUpload(
   file: File,
   reportDate: string,
 ): Promise<DailyUploadResult> {
   const buffer = Buffer.from(await file.arrayBuffer());
-  const rawData = readSpreadsheet(buffer);
 
-  if (rawData.length === 0) throw new Error("EMPTY_SPREADSHEET");
+  // Auto-detect format and parse
+  const csv = isCsvFile(buffer, file.name);
+  const rows = csv ? parseCsvRows(buffer) : parseExcelRows(buffer);
 
-  const rows = parseRows(rawData);
+  if (rows.length === 0) throw new Error("EMPTY_SPREADSHEET");
+
   const date = new Date(reportDate);
+  date.setUTCHours(0, 0, 0, 0);
   const { year, week } = getISOWeek(date);
 
-  let imported = 0;
-  let playersCreated = 0;
-  const allPlayerIds: string[] = [];
+  // Execute everything in a single transaction with rollback on failure
+  const result = await prisma.$transaction(async (tx) => {
+    const affectedPlayerIds: string[] = [];
+    let playersCreated = 0;
 
-  for (const row of rows) {
-    const rawName = String(row.name || "");
-    if (!rawName.trim()) continue;
+    // ── Consolidate duplicate player names within the same file ──
+    // Some CSVs have the same player on multiple rows (e.g. half 1 + half 2).
+    // Sum their metrics into a single row per player before inserting.
+    const consolidated = new Map<string, ParsedDailyRow>();
+    for (const row of rows) {
+      const key = normalizeName(row.name);
+      if (!key) continue;
+      const existing = consolidated.get(key);
+      if (existing) {
+        existing.totalDistance += row.totalDistance;
+        existing.hsr += row.hsr;
+        existing.sprintDistance += row.sprintDistance;
+        existing.sprints += row.sprints;
+        existing.accelerations += row.accelerations;
+        existing.decelerations += row.decelerations;
+      } else {
+        consolidated.set(key, { ...row });
+      }
+    }
 
-    const { player, created } = await findOrCreatePlayer(rawName);
-    if (!player) continue;
-    if (created) playersCreated++;
+    const uniqueRows = Array.from(consolidated.values());
 
-    await prisma.gpsDailyReport.upsert({
-      where: {
-        playerId_date: { playerId: player.id, date },
-      },
-      update: {
-        year,
-        weekNumber: week,
-        totalDistance: parseFloatSafe(row.totalDistance),
-        hsr: parseFloatSafe(row.hsr),
-        sprintDistance: parseFloatSafe(row.sprintDistance),
-        sprints: parseIntSafe(row.sprints),
-        accelerations: parseIntSafe(row.accelerations),
-        decelerations: parseIntSafe(row.decelerations),
-        maxSpeed: parseFloatSafe(row.maxSpeed),
-      },
-      create: {
-        playerId: player.id,
-        date,
-        year,
-        weekNumber: week,
-        totalDistance: parseFloatSafe(row.totalDistance),
-        hsr: parseFloatSafe(row.hsr),
-        sprintDistance: parseFloatSafe(row.sprintDistance),
-        sprints: parseIntSafe(row.sprints),
-        accelerations: parseIntSafe(row.accelerations),
-        decelerations: parseIntSafe(row.decelerations),
-        maxSpeed: parseFloatSafe(row.maxSpeed),
-      },
+    // Determine the next session number for this date
+    // All rows in one file belong to the SAME session
+    const maxSession = await tx.gpsDailySession.aggregate({
+      _max: { sessionNumber: true },
+      where: { date },
     });
+    const sessionNumber = (maxSession._max.sessionNumber ?? 0) + 1;
 
-    allPlayerIds.push(player.id);
-    imported++;
-  }
+    // Process each consolidated row
+    for (const row of uniqueRows) {
+      const { playerId, created } = await findOrCreatePlayerTx(tx, row.name);
+      if (created) playersCreated++;
 
-  // Recalculate weekly stats for affected players
-  const uniquePlayerIds = [...new Set(allPlayerIds)];
-  const aggregated = await aggregateAllAffectedWeeks(uniquePlayerIds, [date]);
+      // Insert into sessions table
+      await tx.gpsDailySession.create({
+        data: {
+          playerId,
+          date,
+          sessionNumber,
+          year,
+          weekNumber: week,
+          totalDistance: row.totalDistance,
+          hsr: row.hsr,
+          sprintDistance: row.sprintDistance,
+          sprints: row.sprints,
+          accelerations: row.accelerations,
+          decelerations: row.decelerations,
+        },
+      });
+
+      affectedPlayerIds.push(playerId);
+    }
+
+    // Recalculate daily aggregates (sum all sessions → gps_daily_reports)
+    await aggregateDailySessionsBatch(tx, affectedPlayerIds, date);
+
+    // Recalculate weekly stats for affected players
+    const uniquePlayerIds = [...new Set(affectedPlayerIds)];
+    for (const playerId of uniquePlayerIds) {
+      await aggregateWeekForPlayer(playerId, year, week, tx);
+    }
+
+    return {
+      imported: uniqueRows.length,
+      playersCreated,
+      sessionNumber,
+      weeksAggregated: uniquePlayerIds.length,
+    };
+  });
 
   return {
     mode: "daily",
     success: true,
-    imported,
-    playersCreated,
-    weeksAggregated: aggregated.length,
+    imported: result.imported,
+    playersCreated: result.playersCreated,
+    weeksAggregated: result.weeksAggregated,
+    sessionNumber: result.sessionNumber,
     date: date.toISOString(),
     columns: Object.keys(rows[0] || {}),
-    preview: rows.slice(0, 5),
+    preview: rows.slice(0, 5).map((r) => ({
+      name: r.name,
+      totalDistance: r.totalDistance,
+      hsr: r.hsr,
+      sprintDistance: r.sprintDistance,
+      sprints: r.sprints,
+      accelerations: r.accelerations,
+      decelerations: r.decelerations,
+    })),
   };
 }
 
 // ─── Weekly Upload (Historical / S-Files) ────────────────────────────
-//
-// S-Files have headers that change per week (e.g. "Distancia total S19",
-// "HSR S19"). We IGNORE header names entirely and parse by column index:
-//
-//   Index 0 (Col A) = Player Name
-//   Index 1 (Col B) = total_distance
-//   Index 2 (Col C) = hsr
-//   Index 3 (Col D) = sprint_distance
-//   Index 4 (Col E) = sprints
-//   Index 5 (Col F) = accelerations
-//   Index 6 (Col G) = decelerations
-//
-// Aggregation:
-//   high_velocity     = col2 + col3
-//   mechanical_impacts = col4 + col5 + col6
 
 export async function processWeeklyUpload(
   file: File,
@@ -259,8 +390,6 @@ export async function processWeeklyUpload(
   weekNumber: number,
 ): Promise<WeeklyUploadResult> {
   const buffer = Buffer.from(await file.arrayBuffer());
-
-  // Use INDEX-BASED parsing — ignores all header text
   const rows = readSpreadsheetByIndex(buffer);
 
   if (rows.length === 0) throw new Error("EMPTY_SPREADSHEET");
@@ -273,19 +402,16 @@ export async function processWeeklyUpload(
     const rawName = String(row.name ?? "").trim();
     if (!rawName) continue;
 
-    // Parse all numeric columns with cleaning (handles "35.421" thousands, empty cells, etc.)
-    const totalDistance = parseFloatSafe(row.totalDistance);  // Index 1
-    const hsr = parseFloatSafe(row.hsr);                      // Index 2
-    const sprintDistance = parseFloatSafe(row.sprintDistance); // Index 3
-    const sprints = parseIntSafe(row.sprints);                 // Index 4
-    const accelerations = parseIntSafe(row.accelerations);     // Index 5
-    const decelerations = parseIntSafe(row.decelerations);     // Index 6
+    const totalDistance = parseFloatSafe(row.totalDistance);
+    const hsr = parseFloatSafe(row.hsr);
+    const sprintDistance = parseFloatSafe(row.sprintDistance);
+    const sprints = parseIntSafe(row.sprints);
+    const accelerations = parseIntSafe(row.accelerations);
+    const decelerations = parseIntSafe(row.decelerations);
 
-    // Aggregation formulas
     const highVelocity = hsr + sprintDistance;
     const mechanicalImpacts = sprints + accelerations + decelerations;
 
-    // Skip rows where ALL metrics are 0 (completely empty row like Cris Martínez S19)
     if (totalDistance === 0 && highVelocity === 0 && mechanicalImpacts === 0) {
       continue;
     }
@@ -294,7 +420,6 @@ export async function processWeeklyUpload(
     if (!player) continue;
     if (created) playersCreated++;
 
-    // Upsert into weekly_stats using the MANUAL year/week from the user
     await prisma.weeklyStat.upsert({
       where: {
         playerId_year_weekNumber: {
@@ -316,7 +441,6 @@ export async function processWeeklyUpload(
 
     imported++;
 
-    // Build preview
     if (previewRows.length < 5) {
       previewRows.push({
         name: rawName,

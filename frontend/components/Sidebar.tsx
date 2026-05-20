@@ -12,6 +12,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { href: "/", icon: "monitoring", label: "Monitor ACWR" },
+  { href: "/resumen", icon: "calendar_today", label: "Resumen Diario" },
   { href: "/jugadores", icon: "groups", label: "Jugadores" },
   { href: "/ingesta", icon: "cloud_upload", label: "Ingesta de Datos" },
 ];
