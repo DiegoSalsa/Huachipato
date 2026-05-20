@@ -280,7 +280,7 @@ export default function DashboardPage() {
                       >
                         <td className="px-5 py-3.5">
                           <Link
-                            href={`/jugadores`}
+                            href={`/jugadores/${player.playerId}`}
                             className="font-semibold text-slate-900 hover:text-[#0085CB] transition-colors"
                           >
                             {player.playerName}
