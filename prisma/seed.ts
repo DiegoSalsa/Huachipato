@@ -15,13 +15,16 @@ async function main() {
 
   // Delete in dependency order
   const deletedWeekly = await prisma.weeklyStat.deleteMany();
-  console.log(`  ✓ weekly_stats:      ${deletedWeekly.count} registros eliminados`);
+  console.log(`  ✓ weekly_stats:          ${deletedWeekly.count} registros eliminados`);
 
   const deletedDaily = await prisma.gpsDailyReport.deleteMany();
-  console.log(`  ✓ gps_daily_reports: ${deletedDaily.count} registros eliminados`);
+  console.log(`  ✓ gps_daily_reports:     ${deletedDaily.count} registros eliminados`);
+
+  const deletedSessions = await prisma.gpsDailySession.deleteMany();
+  console.log(`  ✓ gps_daily_sessions:    ${deletedSessions.count} registros eliminados`);
 
   const deletedPlayers = await prisma.player.deleteMany();
-  console.log(`  ✓ players:           ${deletedPlayers.count} registros eliminados`);
+  console.log(`  ✓ players:               ${deletedPlayers.count} registros eliminados`);
 
   const deletedUsers = await prisma.user.deleteMany();
   console.log(`  ✓ users:             ${deletedUsers.count} registros eliminados`);
@@ -29,6 +32,9 @@ async function main() {
   // Reset auto-increment sequences (PostgreSQL)
   await prisma.$executeRawUnsafe(
     `ALTER SEQUENCE IF EXISTS gps_daily_reports_id_seq RESTART WITH 1;`,
+  );
+  await prisma.$executeRawUnsafe(
+    `ALTER SEQUENCE IF EXISTS gps_daily_sessions_id_seq RESTART WITH 1;`,
   );
   await prisma.$executeRawUnsafe(
     `ALTER SEQUENCE IF EXISTS weekly_stats_id_seq RESTART WITH 1;`,
@@ -54,6 +60,7 @@ async function main() {
   console.log(`    Email: ${adminUser.email}`);
   console.log(`    Contraseña: admin123`);
   console.log(`    Rol: ${adminUser.role}`);
+
 
   console.log("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
   console.log("✅ Base de datos limpia y lista para ingesta real.");

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 
 interface UploadResult {
   mode: "daily" | "weekly";
@@ -15,7 +15,17 @@ interface UploadResult {
   preview: Record<string, unknown>[];
 }
 
+interface LastUploadInfo {
+  fileName: string;
+  date: string;
+  mode: "daily" | "weekly";
+  imported: number;
+  uploadedAt: string;
+}
+
 type ModalMode = null | "daily" | "weekly";
+
+const LAST_UPLOAD_KEY = "huachipato_last_upload";
 
 // Generate week options 1-53
 const weekOptions = Array.from({ length: 53 }, (_, i) => i + 1);
@@ -50,6 +60,43 @@ export default function IngestaPage() {
   const [uploadResult, setUploadResult] = useState<UploadResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [lastUpload, setLastUpload] = useState<LastUploadInfo | null>(null);
+
+  // Load last upload info from API (DB) on mount, fallback to localStorage
+  useEffect(() => {
+    async function fetchLatest() {
+      try {
+        const stored = localStorage.getItem(LAST_UPLOAD_KEY);
+        const local: LastUploadInfo | null = stored ? JSON.parse(stored) : null;
+
+        const res = await fetch("/api/upload/latest");
+        const json = await res.json();
+        if (json.latest) {
+          // If localStorage has a more recent upload (with filename), prefer it
+          if (local && new Date(local.uploadedAt) >= new Date(json.latest.uploadedAt)) {
+            setLastUpload(local);
+          } else {
+            // Use DB data (no filename available)
+            setLastUpload({
+              fileName: "",
+              date: json.latest.date.split("T")[0],
+              mode: "daily",
+              imported: json.latest.playersCount,
+              uploadedAt: json.latest.uploadedAt,
+            });
+          }
+        } else if (local) {
+          setLastUpload(local);
+        }
+      } catch {
+        try {
+          const stored = localStorage.getItem(LAST_UPLOAD_KEY);
+          if (stored) setLastUpload(JSON.parse(stored));
+        } catch { /* ignore */ }
+      }
+    }
+    fetchLatest();
+  }, []);
 
   // Daily mode state
   const [reportDate, setReportDate] = useState(
@@ -91,6 +138,16 @@ export default function IngestaPage() {
           setError(data.error || "Error al procesar archivo");
         } else {
           setUploadResult(data);
+          // Save last upload info
+          const info: LastUploadInfo = {
+            fileName: file.name,
+            date: data.mode === "daily" ? reportDate : `S${data.weekNumber} · ${data.year}`,
+            mode: data.mode === "daily" ? "daily" : "weekly",
+            imported: data.imported,
+            uploadedAt: new Date().toISOString(),
+          };
+          setLastUpload(info);
+          try { localStorage.setItem(LAST_UPLOAD_KEY, JSON.stringify(info)); } catch { /* ignore */ }
           setModalMode(null); // Close modal on success
         }
       } catch {
@@ -205,6 +262,46 @@ export default function IngestaPage() {
                 </div>
               </button>
             </div>
+
+            {/* Last Upload Info */}
+            {lastUpload && (
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 flex items-center gap-4">
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#0085CB]/10">
+                  <span className="material-symbols-outlined text-xl text-[#0085CB]">
+                    history
+                  </span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-0.5">
+                    Última subida
+                  </p>
+                  <p className="text-sm font-bold text-slate-800 truncate">
+                    {lastUpload.fileName || "Informe Diario"}
+                  </p>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="text-sm font-bold text-slate-700">
+                    {lastUpload.mode === "daily"
+                      ? new Date(lastUpload.date + "T12:00:00").toLocaleDateString("es-CL", {
+                          weekday: "short",
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })
+                      : lastUpload.date}
+                  </p>
+                  <p className="text-[11px] text-slate-400">
+                    {new Date(lastUpload.uploadedAt).toLocaleString("es-CL", {
+                      day: "numeric",
+                      month: "short",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                    {" · "}{lastUpload.imported} registros
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* Success Result */}
             {uploadResult && (

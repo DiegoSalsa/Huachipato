@@ -32,10 +32,32 @@ model Player {
   position  Position @default(MEDIOCAMPISTA)
   createdAt DateTime @default(now()) @map("created_at")
 
-  gpsDailyReports GpsDailyReport[]
-  weeklyStats     WeeklyStat[]
+  gpsDailyReports  GpsDailyReport[]
+  gpsDailySessions GpsDailySession[]
+  weeklyStats      WeeklyStat[]
 
   @@map("players")
+}
+
+model GpsDailySession {
+  id             Int      @id @default(autoincrement())
+  playerId       String   @map("player_id") @db.Uuid
+  date           DateTime
+  sessionNumber  Int      @map("session_number") @default(1)
+  year           Int      @default(0)
+  weekNumber     Int      @default(0) @map("week_number")
+  totalDistance   Float    @map("total_distance") @default(0)
+  hsr            Float    @default(0)
+  sprintDistance  Float    @default(0) @map("sprint_distance")
+  sprints        Int      @default(0)
+  accelerations  Int      @default(0)
+  decelerations  Int      @default(0)
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([playerId, date, sessionNumber])
+  @@map("gps_daily_sessions")
 }
 
 model GpsDailyReport {

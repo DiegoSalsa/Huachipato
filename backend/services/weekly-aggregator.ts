@@ -15,13 +15,18 @@ import { prisma } from "@/backend/lib/db";
  * Get ISO week number from a Date.
  */
 export function getISOWeek(date: Date): { year: number; week: number } {
-  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
   const dayNum = d.getUTCDay() || 7;
   d.setUTCDate(d.getUTCDate() + 4 - dayNum);
   const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
   const weekNo = Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
   return { year: d.getUTCFullYear(), week: weekNo };
 }
+
+type TxClient = Omit<
+  typeof prisma,
+  "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends"
+>;
 
 /**
  * Aggregate daily reports for a specific player and week into a weekly stat.
@@ -31,13 +36,15 @@ export async function aggregateWeekForPlayer(
   playerId: string,
   year: number,
   weekNumber: number,
+  tx?: TxClient
 ) {
+  const db = tx ?? prisma;
   // Get the date range for this ISO week
   const startOfWeek = getDateFromISOWeek(year, weekNumber, 1); // Monday
   const endOfWeek = getDateFromISOWeek(year, weekNumber, 7);   // Sunday end
-  endOfWeek.setHours(23, 59, 59, 999);
+  endOfWeek.setUTCHours(23, 59, 59, 999);
 
-  const dailyReports = await prisma.gpsDailyReport.findMany({
+  const dailyReports = await db.gpsDailyReport.findMany({
     where: {
       playerId,
       date: {
@@ -59,7 +66,7 @@ export async function aggregateWeekForPlayer(
     0,
   );
 
-  return prisma.weeklyStat.upsert({
+  return db.weeklyStat.upsert({
     where: {
       playerId_year_weekNumber: {
         playerId,

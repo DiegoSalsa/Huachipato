@@ -24,6 +24,16 @@ interface PlayerAcwr {
   riskHighVelocity: AcwrRisk | null;
   riskMechImpacts: AcwrRisk | null;
   overallRisk: AcwrRisk | null;
+
+  // 21 days metrics
+  ratioDistance21: number | null;
+  ratioHighVelocity21: number | null;
+  ratioMechImpacts21: number | null;
+  riskDistance21: AcwrRisk | null;
+  riskHighVelocity21: AcwrRisk | null;
+  riskMechImpacts21: AcwrRisk | null;
+  overallRisk21: AcwrRisk | null;
+
   weeksAvailable: number;
 }
 
@@ -68,6 +78,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState("all");
   const [selectedWeek, setSelectedWeek] = useState<string>("");
+  const [period, setPeriod] = useState<"28" | "21">("28");
 
   const loadData = useCallback(async (weekParam?: string) => {
     setLoading(true);
@@ -75,14 +86,16 @@ export default function DashboardPage() {
     const res = await fetch(url);
     const json: AcwrResponse = await res.json();
     setData(json);
-    if (!selectedWeek && json.year && json.week) {
-      setSelectedWeek(`${json.year}-${json.week}`);
-    }
     setLoading(false);
-  }, [selectedWeek]);
+    return json;
+  }, []);
 
   useEffect(() => {
-    void loadData();
+    void loadData().then((json) => {
+      if (json?.year && json?.week) {
+        setSelectedWeek(`${json.year}-${json.week}`);
+      }
+    });
   }, [loadData]);
 
   const handleWeekChange = (value: string) => {
@@ -93,18 +106,20 @@ export default function DashboardPage() {
 
   const players = data?.players ?? [];
 
+  const getRisk = (p: PlayerAcwr) => period === "28" ? p.overallRisk : p.overallRisk21;
+
   const counts = {
     all: players.length,
-    optimo: players.filter((p) => p.overallRisk === "optimo").length,
-    cuidado: players.filter((p) => p.overallRisk === "cuidado").length,
-    alto: players.filter((p) => p.overallRisk === "alto").length,
-    bajo: players.filter((p) => p.overallRisk === "bajo").length,
+    optimo: players.filter((p) => getRisk(p) === "optimo").length,
+    cuidado: players.filter((p) => getRisk(p) === "cuidado").length,
+    alto: players.filter((p) => getRisk(p) === "alto").length,
+    bajo: players.filter((p) => getRisk(p) === "bajo").length,
   };
 
   const filtered =
     activeFilter === "all"
       ? players
-      : players.filter((p) => p.overallRisk === activeFilter);
+      : players.filter((p) => getRisk(p) === activeFilter);
 
   return (
     <main className="flex-1 flex flex-col overflow-y-auto bg-white">
@@ -140,6 +155,20 @@ export default function DashboardPage() {
                   </span>
                 </div>
               )}
+              {/* Period Selector */}
+              <div className="relative">
+                <select
+                  value={period}
+                  onChange={(e) => setPeriod(e.target.value as "28" | "21")}
+                  className="appearance-none rounded-xl border border-slate-200 bg-slate-50 pl-4 pr-9 py-2 text-sm font-semibold text-slate-800 outline-none focus:border-[#0085CB] focus:ring-2 focus:ring-[#0085CB]/20"
+                >
+                  <option value="28">28 Días (4 Sem)</option>
+                  <option value="21">21 Días (3 Sem)</option>
+                </select>
+                <span className="material-symbols-outlined pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 text-base">
+                  expand_more
+                </span>
+              </div>
               <Link
                 href="/ingesta"
                 className="inline-flex items-center gap-2 rounded-lg bg-[#0085CB] px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
@@ -224,7 +253,7 @@ export default function DashboardPage() {
                   Tabla ACWR del Plantel
                 </h2>
                 <p className="text-xs font-medium text-slate-500">
-                  Ratios calculados con fórmula de carga crónica 28 días · Semáforo de riesgo
+                  Ratios calculados con fórmula de carga crónica {period} días · Semáforo de riesgo
                 </p>
               </div>
               <div className="overflow-x-auto">
@@ -248,7 +277,7 @@ export default function DashboardPage() {
                       >
                         <td className="px-5 py-3.5">
                           <Link
-                            href={`/jugadores`}
+                            href={`/jugadores/${player.playerId}`}
                             className="font-semibold text-slate-900 hover:text-[#0085CB] transition-colors"
                           >
                             {player.playerName}
@@ -263,16 +292,16 @@ export default function DashboardPage() {
                             : "—"}
                         </td>
                         <td className="px-5 py-3.5 text-center">
-                          <RatioCell ratio={player.ratioDistance28} risk={player.riskDistance} />
+                          <RatioCell ratio={period === "28" ? player.ratioDistance28 : player.ratioDistance21} risk={period === "28" ? player.riskDistance : player.riskDistance21} />
                         </td>
                         <td className="px-5 py-3.5 text-center">
-                          <RatioCell ratio={player.ratioHighVelocity28} risk={player.riskHighVelocity} />
+                          <RatioCell ratio={period === "28" ? player.ratioHighVelocity28 : player.ratioHighVelocity21} risk={period === "28" ? player.riskHighVelocity : player.riskHighVelocity21} />
                         </td>
                         <td className="px-5 py-3.5 text-center">
-                          <RatioCell ratio={player.ratioMechImpacts28} risk={player.riskMechImpacts} />
+                          <RatioCell ratio={period === "28" ? player.ratioMechImpacts28 : player.ratioMechImpacts21} risk={period === "28" ? player.riskMechImpacts : player.riskMechImpacts21} />
                         </td>
                         <td className="px-5 py-3.5 text-center">
-                          <AcwrBadge risk={player.overallRisk} />
+                          <AcwrBadge risk={getRisk(player)} />
                         </td>
                       </tr>
                     ))}
