@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
-import Sidebar from "@/components/Sidebar";
 
 interface UploadResult {
   mode: "daily" | "weekly";
@@ -132,9 +131,7 @@ export default function IngestaPage() {
   const previewRows = uploadResult?.preview?.slice(0, 5) ?? [];
 
   return (
-    <div className="flex h-screen overflow-hidden">
-      <Sidebar />
-      <main className="flex-1 flex flex-col overflow-y-auto bg-white pb-20 md:pb-0">
+    <main className="flex-1 flex flex-col overflow-y-auto bg-white">
         <header className="border-b border-slate-200 px-6 py-6 md:px-10">
           <div className="mx-auto max-w-6xl">
             <h1 className="text-3xl font-black tracking-tight text-slate-900">
@@ -592,6 +589,5 @@ export default function IngestaPage() {
           </div>
         )}
       </main>
-    </div>
   );
 }

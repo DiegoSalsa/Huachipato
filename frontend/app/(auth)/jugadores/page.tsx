@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import Sidebar from "@/components/Sidebar";
 
 interface Player {
   id: string;
@@ -82,9 +81,7 @@ export default function JugadoresPage() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden">
-      <Sidebar />
-      <main className="flex-1 overflow-y-auto bg-white pb-20 md:pb-0">
+    <main className="flex-1 overflow-y-auto bg-white">
         <header className="h-16 border-b border-slate-200 flex items-center justify-between px-8">
           <div>
             <h2 className="text-xl font-bold text-slate-900">Jugadores</h2>
@@ -262,6 +259,5 @@ export default function JugadoresPage() {
           </div>
         )}
       </main>
-    </div>
   );
 }

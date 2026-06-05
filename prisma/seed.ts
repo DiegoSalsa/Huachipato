@@ -1,5 +1,6 @@
 import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
@@ -22,6 +23,9 @@ async function main() {
   const deletedPlayers = await prisma.player.deleteMany();
   console.log(`  ✓ players:           ${deletedPlayers.count} registros eliminados`);
 
+  const deletedUsers = await prisma.user.deleteMany();
+  console.log(`  ✓ users:             ${deletedUsers.count} registros eliminados`);
+
   // Reset auto-increment sequences (PostgreSQL)
   await prisma.$executeRawUnsafe(
     `ALTER SEQUENCE IF EXISTS gps_daily_reports_id_seq RESTART WITH 1;`,
@@ -31,6 +35,26 @@ async function main() {
   );
 
   console.log("\n  ✓ Secuencias de IDs reiniciadas");
+
+  // Create default admin user
+  console.log("\n📝 Creando usuario de prueba...\n");
+  const salt = await bcrypt.genSalt(10);
+  const hashedPassword = await bcrypt.hash("admin123", salt);
+
+  const adminUser = await prisma.user.create({
+    data: {
+      email: "admin@huachipato.cl",
+      password: hashedPassword,
+      name: "Administrador",
+      role: "admin",
+    },
+  });
+
+  console.log(`  ✓ Usuario creado:`);
+  console.log(`    Email: ${adminUser.email}`);
+  console.log(`    Contraseña: admin123`);
+  console.log(`    Rol: ${adminUser.role}`);
+
   console.log("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
   console.log("✅ Base de datos limpia y lista para ingesta real.");
   console.log("   Sube archivos CSV/Excel desde la interfaz web.\n");

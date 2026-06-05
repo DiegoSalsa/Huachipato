@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import Sidebar from "@/components/Sidebar";
 import AcwrBadge, { riskConfig } from "@/components/AcwrBadge";
 
 type AcwrRisk = "bajo" | "optimo" | "cuidado" | "alto";
@@ -108,9 +107,7 @@ export default function DashboardPage() {
       : players.filter((p) => p.overallRisk === activeFilter);
 
   return (
-    <div className="flex h-screen overflow-hidden">
-      <Sidebar />
-      <main className="flex-1 flex flex-col overflow-y-auto bg-white pb-20 md:pb-0">
+    <main className="flex-1 flex flex-col overflow-y-auto bg-white">
         {/* Header */}
         <header className="border-b border-slate-200 bg-white px-4 py-5 md:px-8">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -311,6 +308,5 @@ export default function DashboardPage() {
           </div>
         </div>
       </main>
-    </div>
   );
 }

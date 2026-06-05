@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
 
 interface NavItem {
   href: string;
@@ -18,6 +19,7 @@ const navItems: NavItem[] = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const { user, logout } = useAuth();
 
   const isActive = (href: string) => {
     if (href === "/") return pathname === "/";
@@ -65,8 +67,21 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      {/* Bottom */}
-      <div className="p-4 border-t border-white/10">
+      {/* Bottom - User Info & Logout */}
+      <div className="p-4 border-t border-white/10 space-y-3">
+        {user && (
+          <div className="px-3 py-2 text-white/80 text-xs">
+            <p className="font-medium truncate">{user.name || user.email}</p>
+            <p className="text-white/50 text-[10px]">{user.role}</p>
+          </div>
+        )}
+        <button
+          onClick={logout}
+          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg bg-red-600/20 hover:bg-red-600/30 text-red-300 transition-colors text-sm font-medium"
+        >
+          <span className="material-symbols-outlined text-xl">logout</span>
+          <span>Cerrar Sesión</span>
+        </button>
         <div className="px-3 py-2 text-white/40 text-[10px] font-medium">
           Sistema ACWR v1.0
         </div>

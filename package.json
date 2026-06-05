@@ -10,7 +10,11 @@
   },
   "dependencies": {
     "@prisma/client": "^6.19.2",
+    "@types/jsonwebtoken": "^9.0.10",
+    "bcryptjs": "^3.0.3",
+    "jsonwebtoken": "^9.0.3",
     "next": "16.1.7",
+    "next-auth": "^4.24.14",
     "prisma": "^6.19.2",
     "react": "19.2.3",
     "react-dom": "19.2.3",

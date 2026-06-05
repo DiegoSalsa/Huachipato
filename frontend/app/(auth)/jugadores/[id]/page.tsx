@@ -2,7 +2,6 @@
 
 import { use, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
-import Sidebar from "@/components/Sidebar";
 
 interface Player {
   id: number;
@@ -183,18 +182,14 @@ export default function JugadorPerfilPage({ params }: { params: Promise<{ id: st
 
   if (loading || !player) {
     return (
-      <div className="flex h-screen overflow-hidden">
-        <Sidebar />
-        <main className="flex flex-1 items-center justify-center bg-white pb-20 md:pb-0">
-          <div className="size-10 animate-spin rounded-full border-4 border-[#0085CB] border-t-transparent" />
-        </main>
-      </div>
+      <main className="flex flex-1 items-center justify-center bg-white">
+        <div className="size-10 animate-spin rounded-full border-4 border-[#0085CB] border-t-transparent" />
+      </main>
     );
   }
 
   return (
-    <div className="flex h-screen overflow-hidden">
-      <Sidebar />
+    <main className="flex flex-col flex-1 bg-white pb-20 md:pb-0">
       <main className="flex flex-1 flex-col overflow-y-auto bg-white pb-20 md:pb-0">
         <header className="border-b border-slate-200 bg-white px-6 py-6 md:px-10">
           <div className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-5 rounded-3xl border border-slate-200 bg-gradient-to-r from-slate-50 to-white p-5 md:grid-cols-[auto_1fr_auto] md:items-center">
