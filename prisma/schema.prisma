@@ -36,6 +36,7 @@ model Player {
   gpsDailyReports  GpsDailyReport[]
   gpsDailySessions GpsDailySession[]
   weeklyStats      WeeklyStat[]
+  injuries         Injury[]
 
   @@map("players")
 }
@@ -95,4 +96,22 @@ model WeeklyStat {
 
   @@unique([playerId, year, weekNumber])
   @@map("weekly_stats")
+}
+
+model Injury {
+  id                    String   @id @default(cuid())
+  playerId              String   @map("player_id")
+  injuryType            String   @map("injury_type")
+  severity              String
+  dateOfInjury          DateTime @map("date_of_injury")
+  estimatedRecoveryDays Int      @map("estimated_recovery_days")
+  status                String
+  description           String?
+
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@map("injuries")
 }

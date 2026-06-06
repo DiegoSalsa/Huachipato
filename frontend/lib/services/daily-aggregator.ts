@@ -1,4 +1,5 @@
 import { PrismaClient, Prisma } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
 import { getISOWeek } from "@/lib/services/weekly-aggregator";
 
 /**
@@ -37,17 +38,18 @@ const ZERO_METRICS = {
  * is deleted to keep the data consistent.
  */
 export async function aggregateDailySessions(
-  tx: TxClient,
   playerId: string,
   date: Date,
+  tx?: TxClient,
 ): Promise<void> {
-  const sessions = await tx.gpsDailySession.findMany({
+  const db = tx ?? prisma;
+  const sessions = await db.gpsDailySession.findMany({
     where: { playerId, date },
   });
 
   // If all sessions were deleted, remove the daily report too
   if (sessions.length === 0) {
-    await tx.gpsDailyReport.deleteMany({
+    await db.gpsDailyReport.deleteMany({
       where: { playerId, date },
     });
     return;
@@ -68,7 +70,7 @@ export async function aggregateDailySessions(
 
   const { year, week: weekNumber } = getISOWeek(date);
 
-  await tx.gpsDailyReport.upsert({
+  await db.gpsDailyReport.upsert({
     where: {
       playerId_date: { playerId, date },
     },
@@ -92,12 +94,12 @@ export async function aggregateDailySessions(
  * Convenience wrapper for batch operations.
  */
 export async function aggregateDailySessionsBatch(
-  tx: TxClient,
   playerIds: string[],
   date: Date,
+  tx?: TxClient,
 ): Promise<void> {
   const uniqueIds = [...new Set(playerIds)];
   for (const playerId of uniqueIds) {
-    await aggregateDailySessions(tx, playerId, date);
+    await aggregateDailySessions(playerId, date, tx);
   }
 }

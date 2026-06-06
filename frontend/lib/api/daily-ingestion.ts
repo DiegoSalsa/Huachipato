@@ -3,6 +3,7 @@ import { normalizeName, parseFloatSafe, parseIntSafe } from "@/lib/utils";
 import { parse } from "csv-parse/sync";
 import { getISOWeek, aggregateWeekForPlayer } from "@/lib/services/weekly-aggregator";
 import { aggregateDailySessionsBatch } from "@/lib/services/daily-aggregator";
+import { z } from "zod";
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -69,22 +70,29 @@ const CSV_COL_MAP: Record<string, string> = {
 
 // ─── CSV Parsing ────────────────────────────────────────────────────
 
-interface ParsedRow {
-  playerName: string;
-  totalDistance: number;
-  hsr: number;
-  sprintDistance: number;
-  sprints: number;
-  accelerations: number;
-  decelerations: number;
-}
+const CsvRowSchema = z.object({
+  playerName: z.string().trim().min(1, "El nombre no puede estar vacío"),
+  totalDistance: z.unknown().transform(parseFloatSafe),
+  hsr: z.unknown().transform(parseFloatSafe),
+  sprintDistance: z.unknown().transform(parseFloatSafe),
+  sprints: z.unknown().transform(parseIntSafe),
+  accelerations: z.unknown().transform(parseIntSafe),
+  decelerations: z.unknown().transform(parseIntSafe),
+});
+
+type ParsedRow = z.infer<typeof CsvRowSchema>;
 
 /**
  * Parse a CSV buffer with semicolon delimiter.
  * Maps column headers using CSV_COL_MAP and normalizes values.
  */
 function parseCsvBuffer(buffer: Buffer): ParsedRow[] {
-  const rawRows = parse(buffer, {
+  let content = buffer.toString("utf8");
+  if (content.includes("\uFFFD")) {
+    content = buffer.toString("latin1");
+  }
+
+  const rawRows = parse(content, {
     delimiter: ";",
     columns: true,        // Use first row as headers
     skip_empty_lines: true,
@@ -106,19 +114,17 @@ function parseCsvBuffer(buffer: Buffer): ParsedRow[] {
       }
     }
 
-    // Skip rows without a player name
-    const rawName = String(mapped.playerName ?? "").trim();
-    if (!rawName) continue;
+    const validation = CsvRowSchema.safeParse(mapped);
 
-    parsed.push({
-      playerName: rawName,
-      totalDistance: parseFloatSafe(mapped.totalDistance),
-      hsr: parseFloatSafe(mapped.hsr),
-      sprintDistance: parseFloatSafe(mapped.sprintDistance),
-      sprints: parseIntSafe(mapped.sprints),
-      accelerations: parseIntSafe(mapped.accelerations),
-      decelerations: parseIntSafe(mapped.decelerations),
-    });
+    if (validation.success) {
+      parsed.push(validation.data);
+    } else {
+      console.warn(
+        "Fila ignorada por formato inválido:",
+        mapped,
+        validation.error.errors
+      );
+    }
   }
 
   return parsed;
@@ -174,67 +180,75 @@ export async function processDailyCsvUpload(
     throw new Error("EMPTY_CSV");
   }
 
-  const date = new Date(reportDate);
-  // Ensure consistent UTC midnight
-  date.setUTCHours(0, 0, 0, 0);
+  // Parse date and force it to Noon UTC to avoid timezone shifts
+  const dateStr = reportDate.includes('T') ? reportDate.split('T')[0] : reportDate;
+  const date = new Date(`${dateStr}T12:00:00.000Z`);
   const { year, week } = getISOWeek(date);
 
-  // 2. Execute everything in a single transaction
-  const result = await prisma.$transaction(async (tx) => {
-    const affectedPlayerIds: string[] = [];
-    let playersCreated = 0;
-    let sessionsCreated = 0;
-
-    // Determine the next session number for this date.
-    // All rows in one CSV file belong to the SAME session.
-    const maxSession = await tx.gpsDailySession.aggregate({
-      _max: { sessionNumber: true },
-      where: { date },
-    });
-    const sessionNumber = (maxSession._max.sessionNumber ?? 0) + 1;
-
-    // 2a. Process each row
-    for (const row of rows) {
-      const { playerId, created } = await findOrCreatePlayerTx(tx, row.playerName);
-      if (created) playersCreated++;
-
-      // 2b. Insert session
-      await tx.gpsDailySession.create({
-        data: {
-          playerId,
-          date,
-          sessionNumber,
-          year,
-          weekNumber: week,
-          totalDistance: row.totalDistance,
-          hsr: row.hsr,
-          sprintDistance: row.sprintDistance,
-          sprints: row.sprints,
-          accelerations: row.accelerations,
-          decelerations: row.decelerations,
-        },
-      });
-
-      affectedPlayerIds.push(playerId);
-      sessionsCreated++;
-    }
-
-    // 2c. Recalculate daily aggregates for all affected players
-    await aggregateDailySessionsBatch(tx, affectedPlayerIds, date);
-
-    // 2d. Recalculate weekly stats for affected players
-    const uniquePlayerIds = [...new Set(affectedPlayerIds)];
-    for (const playerId of uniquePlayerIds) {
-      await aggregateWeekForPlayer(playerId, year, week);
-    }
-
-    return {
-      sessionsCreated,
-      playersCreated,
-      sessionNumber,
-      weeksAggregated: uniquePlayerIds.length,
-    };
+  const maxSession = await prisma.gpsDailySession.aggregate({
+    _max: { sessionNumber: true },
+    where: { date },
   });
+  const sessionNumber = (maxSession._max.sessionNumber ?? 0) + 1;
+
+  // 1. Batch Find or Create Players
+  const allNames = [...new Set(rows.map((r) => normalizeName(r.playerName)).filter(Boolean))] as string[];
+  const existingPlayers = await prisma.player.findMany({
+    where: { name: { in: allNames } },
+  });
+
+  const playerMap = new Map(existingPlayers.map((p) => [p.name, p.id]));
+  let playersCreated = 0;
+
+  const missingNames = allNames.filter((name) => !playerMap.has(name));
+  if (missingNames.length > 0) {
+    const createdPlayers = await Promise.all(
+      missingNames.map((name) =>
+        prisma.player.create({ data: { name, position: "MEDIOCAMPISTA" } }),
+      ),
+    );
+    for (const p of createdPlayers) {
+      playerMap.set(p.name, p.id);
+      playersCreated++;
+    }
+  }
+
+  // 2. Batch Insert Sessions
+  const sessionData = rows.map((row) => {
+    const name = normalizeName(row.playerName);
+    return {
+      playerId: playerMap.get(name)!,
+      date,
+      sessionNumber,
+      year,
+      weekNumber: week,
+      totalDistance: row.totalDistance,
+      hsr: row.hsr,
+      sprintDistance: row.sprintDistance,
+      sprints: row.sprints,
+      accelerations: row.accelerations,
+      decelerations: row.decelerations,
+    };
+  }).filter((row) => row.playerId); // Safety check
+
+  await prisma.gpsDailySession.createMany({ data: sessionData });
+  const affectedPlayerIds = Array.from(playerMap.values());
+  const sessionsCreated = sessionData.length;
+
+  // 3. Batch Aggregations (concurrently)
+  await aggregateDailySessionsBatch(affectedPlayerIds, date);
+
+  const uniquePlayerIds = [...new Set(affectedPlayerIds)];
+  await Promise.all(
+    uniquePlayerIds.map((playerId) => aggregateWeekForPlayer(playerId, year, week)),
+  );
+
+  const result = {
+    sessionsCreated,
+    playersCreated,
+    sessionNumber,
+    weeksAggregated: uniquePlayerIds.length,
+  };
 
   // 3. Build response
   return {

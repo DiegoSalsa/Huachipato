@@ -124,7 +124,12 @@ function isCsvFile(buffer: Buffer, fileName?: string): boolean {
  * Parse a CSV buffer (semicolon-delimited) and map to daily rows.
  */
 function parseCsvRows(buffer: Buffer): ParsedDailyRow[] {
-  const rawRows = parse(buffer, {
+  let content = buffer.toString("utf8");
+  if (content.includes("\uFFFD")) {
+    content = buffer.toString("latin1");
+  }
+
+  const rawRows = parse(content, {
     delimiter: ";",
     columns: true,
     skip_empty_lines: true,
@@ -280,86 +285,95 @@ export async function processDailyUpload(
 
   if (rows.length === 0) throw new Error("EMPTY_SPREADSHEET");
 
-  const date = new Date(reportDate);
-  date.setUTCHours(0, 0, 0, 0);
+  // Parse date and force it to Noon UTC to avoid timezone shifts
+  const dateStr = reportDate.includes('T') ? reportDate.split('T')[0] : reportDate;
+  const date = new Date(`${dateStr}T12:00:00.000Z`);
   const { year, week } = getISOWeek(date);
 
-  // Execute everything in a single transaction with rollback on failure
-  const result = await prisma.$transaction(async (tx) => {
-    const affectedPlayerIds: string[] = [];
-    let playersCreated = 0;
-
-    // ── Consolidate duplicate player names within the same file ──
-    // Some CSVs have the same player on multiple rows (e.g. half 1 + half 2).
-    // Sum their metrics into a single row per player before inserting.
-    const consolidated = new Map<string, ParsedDailyRow>();
-    for (const row of rows) {
-      const key = normalizeName(row.name);
-      if (!key) continue;
-      const existing = consolidated.get(key);
-      if (existing) {
-        existing.totalDistance += row.totalDistance;
-        existing.hsr += row.hsr;
-        existing.sprintDistance += row.sprintDistance;
-        existing.sprints += row.sprints;
-        existing.accelerations += row.accelerations;
-        existing.decelerations += row.decelerations;
-      } else {
-        consolidated.set(key, { ...row });
-      }
+  // ── Consolidate duplicate player names within the same file ──
+  // Some CSVs have the same player on multiple rows (e.g. half 1 + half 2).
+  // Sum their metrics into a single row per player before inserting.
+  const consolidated = new Map<string, ParsedDailyRow>();
+  for (const row of rows) {
+    const normalized = normalizeName(row.name);
+    if (!normalized) continue;
+    const existing = consolidated.get(normalized);
+    if (existing) {
+      existing.totalDistance += row.totalDistance;
+      existing.hsr += row.hsr;
+      existing.sprintDistance += row.sprintDistance;
+      existing.sprints += row.sprints;
+      existing.accelerations += row.accelerations;
+      existing.decelerations += row.decelerations;
+    } else {
+      consolidated.set(normalized, { ...row, name: normalized });
     }
+  }
 
-    const uniqueRows = Array.from(consolidated.values());
+  const uniqueRows = Array.from(consolidated.values());
 
-    // Determine the next session number for this date
-    // All rows in one file belong to the SAME session
-    const maxSession = await tx.gpsDailySession.aggregate({
-      _max: { sessionNumber: true },
-      where: { date },
-    });
-    const sessionNumber = (maxSession._max.sessionNumber ?? 0) + 1;
-
-    // Process each consolidated row
-    for (const row of uniqueRows) {
-      const { playerId, created } = await findOrCreatePlayerTx(tx, row.name);
-      if (created) playersCreated++;
-
-      // Insert into sessions table
-      await tx.gpsDailySession.create({
-        data: {
-          playerId,
-          date,
-          sessionNumber,
-          year,
-          weekNumber: week,
-          totalDistance: row.totalDistance,
-          hsr: row.hsr,
-          sprintDistance: row.sprintDistance,
-          sprints: row.sprints,
-          accelerations: row.accelerations,
-          decelerations: row.decelerations,
-        },
-      });
-
-      affectedPlayerIds.push(playerId);
-    }
-
-    // Recalculate daily aggregates (sum all sessions → gps_daily_reports)
-    await aggregateDailySessionsBatch(tx, affectedPlayerIds, date);
-
-    // Recalculate weekly stats for affected players
-    const uniquePlayerIds = [...new Set(affectedPlayerIds)];
-    for (const playerId of uniquePlayerIds) {
-      await aggregateWeekForPlayer(playerId, year, week, tx);
-    }
-
-    return {
-      imported: uniqueRows.length,
-      playersCreated,
-      sessionNumber,
-      weeksAggregated: uniquePlayerIds.length,
-    };
+  const maxSession = await prisma.gpsDailySession.aggregate({
+    _max: { sessionNumber: true },
+    where: { date },
   });
+  const sessionNumber = (maxSession._max.sessionNumber ?? 0) + 1;
+
+  // ── 1. Batch Find or Create Players ──
+  const allNames = uniqueRows.map((r) => r.name);
+  const existingPlayers = await prisma.player.findMany({
+    where: { name: { in: allNames } },
+  });
+
+  const playerMap = new Map(existingPlayers.map((p) => [p.name, p.id]));
+  let playersCreated = 0;
+
+  const missingNames = allNames.filter((name) => !playerMap.has(name));
+  if (missingNames.length > 0) {
+    const createdPlayers = await Promise.all(
+      missingNames.map((name) =>
+        prisma.player.create({ data: { name, position: "MEDIOCAMPISTA" } }),
+      ),
+    );
+    for (const p of createdPlayers) {
+      playerMap.set(p.name, p.id);
+      playersCreated++;
+    }
+  }
+
+  // ── 2. Batch Insert Sessions ──
+  const sessionData = uniqueRows.map((row) => ({
+    playerId: playerMap.get(row.name)!,
+    date,
+    sessionNumber,
+    year,
+    weekNumber: week,
+    totalDistance: row.totalDistance,
+    hsr: row.hsr,
+    sprintDistance: row.sprintDistance,
+    sprints: row.sprints,
+    accelerations: row.accelerations,
+    decelerations: row.decelerations,
+  }));
+
+  await prisma.gpsDailySession.createMany({ data: sessionData });
+  const affectedPlayerIds = Array.from(playerMap.values());
+
+  // ── 3. Batch Aggregations ──
+  // Recalculate daily aggregates (concurrently)
+  await aggregateDailySessionsBatch(affectedPlayerIds, date);
+
+  // Recalculate weekly stats (concurrently)
+  const uniquePlayerIds = [...new Set(affectedPlayerIds)];
+  await Promise.all(
+    uniquePlayerIds.map((playerId) => aggregateWeekForPlayer(playerId, year, week)),
+  );
+
+  const result = {
+    imported: uniqueRows.length,
+    playersCreated,
+    sessionNumber,
+    weeksAggregated: uniquePlayerIds.length,
+  };
 
   return {
     mode: "daily",
