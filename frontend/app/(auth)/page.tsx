@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import AcwrBadge, { riskConfig } from "@/components/AcwrBadge";
+import HuachipatoLoader from "@/components/HuachipatoLoader";
 
 type AcwrRisk = "bajo" | "optimo" | "cuidado" | "alto";
 
@@ -235,9 +236,7 @@ export default function DashboardPage() {
 
           {/* ACWR Table */}
           {loading ? (
-            <div className="flex items-center justify-center py-20">
-              <div className="size-8 animate-spin rounded-full border-3 border-[#0085CB] border-t-transparent" />
-            </div>
+            <HuachipatoLoader />
           ) : players.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20">
               <span className="material-symbols-outlined text-6xl text-slate-300">sports_soccer</span>

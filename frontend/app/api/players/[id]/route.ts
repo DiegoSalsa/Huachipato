@@ -88,6 +88,7 @@ export async function GET(
       id: player.id,
       name: player.name,
       position: player.position,
+      photo: player.photo,
       history
     });
 

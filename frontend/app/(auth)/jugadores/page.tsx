@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import Link from "next/link";
+import HuachipatoLoader from "@/components/HuachipatoLoader";
 
 interface Player {
   id: string;
@@ -100,9 +102,7 @@ export default function JugadoresPage() {
 
         <div className="p-8">
           {loading ? (
-            <div className="flex justify-center py-20">
-              <div className="animate-spin size-8 border-3 border-[#0085CB] border-t-transparent rounded-full" />
-            </div>
+            <HuachipatoLoader />
           ) : players.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20">
               <span className="material-symbols-outlined text-6xl text-slate-300">
@@ -156,7 +156,12 @@ export default function JugadoresPage() {
                         className="hover:bg-[#0085CB]/5 transition-colors"
                       >
                         <td className="px-6 py-4 text-sm font-semibold text-slate-900">
-                          {player.name}
+                          <Link
+                            href={`/jugadores/${player.id}`}
+                            className="hover:text-[#0085CB] transition-colors underline decoration-transparent hover:decoration-[#0085CB] underline-offset-4"
+                          >
+                            {player.name}
+                          </Link>
                         </td>
                         <td className="px-6 py-4 text-sm text-slate-600">
                           <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold">

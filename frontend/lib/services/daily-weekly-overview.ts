@@ -69,12 +69,14 @@ export async function getDailyWeeklyOverview(
   const { year, week: weekNumber } = getISOWeek(targetDate);
   const { monday, sunday } = getWeekRange(targetDate);
 
-  // Normalize target date to UTC midnight for matching
+  // Normalize target date to UTC start/end for matching a full day
   const dayStart = new Date(Date.UTC(targetDate.getUTCFullYear(), targetDate.getUTCMonth(), targetDate.getUTCDate()));
+  const dayEnd = new Date(dayStart);
+  dayEnd.setUTCHours(23, 59, 59, 999);
 
   // ─── 1. Today's data ──────────────────────────────────────────
   const dailyReports = await prisma.gpsDailyReport.findMany({
-    where: { date: dayStart },
+    where: { date: { gte: dayStart, lte: dayEnd } },
     include: { player: true },
     orderBy: { player: { name: "asc" } },
   });
@@ -82,7 +84,7 @@ export async function getDailyWeeklyOverview(
   // Count sessions per player for this day
   const sessionCounts = await prisma.gpsDailySession.groupBy({
     by: ["playerId"],
-    where: { date: dayStart },
+    where: { date: { gte: dayStart, lte: dayEnd } },
     _count: { id: true },
   });
   const sessionMap = new Map(sessionCounts.map((s) => [s.playerId, s._count.id]));

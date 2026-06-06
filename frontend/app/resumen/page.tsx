@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Sidebar from "@/components/Sidebar";
+import HuachipatoLoader from "@/components/HuachipatoLoader";
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -240,9 +241,7 @@ export default function ResumenPage() {
           </div>
 
           {loading ? (
-            <div className="flex items-center justify-center py-20">
-              <div className="size-8 animate-spin rounded-full border-3 border-[#0085CB] border-t-transparent" />
-            </div>
+            <HuachipatoLoader />
           ) : (
             <>
               {/* ─── TODAY TAB ───────────────────────────────────── */}

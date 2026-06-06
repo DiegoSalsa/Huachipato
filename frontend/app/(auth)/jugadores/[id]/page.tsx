@@ -1,9 +1,10 @@
 "use client";
 
-import { use, useEffect, useMemo, useState } from "react";
+import { useEffect, useState, useCallback, useMemo, use, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import AcwrBadge from "@/components/AcwrBadge";
+import AcwrBadge, { riskConfig } from "@/components/AcwrBadge";
+import HuachipatoLoader from "@/components/HuachipatoLoader";
 
 interface HistoryPoint {
   year: number;
@@ -22,6 +23,7 @@ interface PlayerProfile {
   id: string;
   name: string;
   position: string;
+  photo: string | null;
   history: HistoryPoint[];
 }
 
@@ -137,6 +139,60 @@ export default function JugadorPerfilPage({ params }: { params: Promise<{ id: st
       });
   }, [id]);
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setUploadingPhoto(true);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new window.Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const MAX_SIZE = 200;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_SIZE) {
+            height *= MAX_SIZE / width;
+            width = MAX_SIZE;
+          }
+        } else {
+          if (height > MAX_SIZE) {
+            width *= MAX_SIZE / height;
+            height = MAX_SIZE;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx?.drawImage(img, 0, 0, width, height);
+
+        const webpDataUrl = canvas.toDataURL("image/webp", 0.8);
+
+        fetch(`/api/players/${id}/photo`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ photoBase64: webpDataUrl }),
+        })
+          .then((res) => res.json())
+          .then((resData) => {
+            if (resData.success && player) {
+              setPlayer({ ...player, photo: resData.player.photo });
+            }
+          })
+          .finally(() => setUploadingPhoto(false));
+      };
+      img.src = e.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
+
   const positionLabels: Record<string, string> = {
     PORTERO: "Portero",
     DEFENSA: "Defensa",
@@ -147,7 +203,11 @@ export default function JugadorPerfilPage({ params }: { params: Promise<{ id: st
   if (loading || !player) {
     return (
       <main className="flex flex-1 items-center justify-center bg-white">
-        <div className="size-10 animate-spin rounded-full border-4 border-[#0085CB] border-t-transparent" />
+        {loading ? (
+          <HuachipatoLoader />
+        ) : !player ? (
+          <p className="text-slate-500">Jugador no encontrado</p>
+        ) : null}
       </main>
     );
   }
@@ -165,8 +225,32 @@ export default function JugadorPerfilPage({ params }: { params: Promise<{ id: st
             </Link>
             
             <div className="grid grid-cols-1 gap-5 rounded-3xl border border-slate-200 bg-gradient-to-r from-slate-50 to-white p-5 md:grid-cols-[auto_1fr_auto] md:items-center">
-              <div className="h-24 w-24 overflow-hidden rounded-2xl border border-slate-200 bg-[#0085CB]/10 flex items-center justify-center">
-                <span className="material-symbols-outlined text-5xl text-[#0085CB]">person</span>
+              <div 
+                className="relative h-24 w-24 overflow-hidden rounded-2xl border border-slate-200 bg-[#0085CB]/10 flex items-center justify-center cursor-pointer group shrink-0"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                {uploadingPhoto ? (
+                  <div className="absolute inset-0 flex items-center justify-center bg-white/50 z-20">
+                    <div className="size-6 animate-spin rounded-full border-2 border-[#0085CB] border-t-transparent" />
+                  </div>
+                ) : null}
+                
+                {player.photo ? (
+                  <img src={player.photo} alt={player.name} className="w-full h-full object-cover" />
+                ) : (
+                  <span className="material-symbols-outlined text-5xl text-[#0085CB]">person</span>
+                )}
+                
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                  <span className="material-symbols-outlined text-white text-2xl">photo_camera</span>
+                </div>
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  className="hidden" 
+                  ref={fileInputRef}
+                  onChange={handleImageUpload}
+                />
               </div>
 
               <div>

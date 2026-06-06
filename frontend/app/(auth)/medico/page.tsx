@@ -1,39 +1,24 @@
 "use client";
 
-import { useState, useEffect } from "react";
-
-type Player = {
-  id: string;
-  name: string;
-  position: string;
-};
-
-type Injury = {
-  id: string;
-  playerId: string;
-  injuryType: string;
-  severity: string;
-  dateOfInjury: string;
-  estimatedRecoveryDays: number;
-  status: string;
-  description: string | null;
-  player: Player;
-};
+import { useState, useEffect, useMemo } from "react";
+import { 
+  Users, Activity, CheckCircle, Clock, 
+  Search, Filter, MoreHorizontal, FileText, HeartPulse 
+} from "lucide-react";
+import ClinicalFileSlideOver, { PlayerWithInjuries } from "@/components/ClinicalFileSlideOver";
+import HuachipatoLoader from "@/components/HuachipatoLoader";
 
 export default function MedicoPage() {
-  const [injuries, setInjuries] = useState<Injury[]>([]);
-  const [players, setPlayers] = useState<Player[]>([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [players, setPlayers] = useState<PlayerWithInjuries[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Form state
-  const [playerId, setPlayerId] = useState("");
-  const [injuryType, setInjuryType] = useState("");
-  const [severity, setSeverity] = useState("Leve");
-  const [dateOfInjury, setDateOfInjury] = useState("");
-  const [estimatedRecoveryDays, setEstimatedRecoveryDays] = useState("");
-  const [status, setStatus] = useState("En recuperación");
-  const [description, setDescription] = useState("");
+  // Clinical File State
+  const [selectedPlayer, setSelectedPlayer] = useState<PlayerWithInjuries | null>(null);
+  const [isClinicalFileOpen, setIsClinicalFileOpen] = useState(false);
+
+  // Filters State
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("Todos");
 
   useEffect(() => {
     fetchData();
@@ -42,14 +27,19 @@ export default function MedicoPage() {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [injuriesRes, playersRes] = await Promise.all([
-        fetch("/api/medico/lesiones"),
-        fetch("/api/players"),
-      ]);
-      const injuriesData = await injuriesRes.json();
-      const playersData = await playersRes.json();
-      setInjuries(injuriesData);
-      setPlayers(playersData);
+      const res = await fetch("/api/medico/fichas");
+      if (res.ok) {
+        const data = await res.json();
+        setPlayers(data);
+        
+        // Si hay un jugador seleccionado, actualizamos su data para que la Ficha se refresque
+        if (selectedPlayer) {
+          const updatedPlayer = data.find((p: PlayerWithInjuries) => p.id === selectedPlayer.id);
+          if (updatedPlayer) {
+            setSelectedPlayer(updatedPlayer);
+          }
+        }
+      }
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
@@ -57,256 +47,241 @@ export default function MedicoPage() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const res = await fetch("/api/medico/lesiones", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          playerId,
-          injuryType,
-          severity,
-          dateOfInjury,
-          estimatedRecoveryDays,
-          status,
-          description,
-        }),
-      });
+  const getPlayerStatus = (player: PlayerWithInjuries) => {
+    const active = player.injuries.find(i => i.status === "En recuperación" || i.status === "Recaída");
+    return active ? "Lesionado" : "Sano";
+  };
 
-      if (res.ok) {
-        const newInjury = await res.json();
-        setInjuries([newInjury, ...injuries]);
-        setIsModalOpen(false);
-        // Reset form
-        setPlayerId("");
-        setInjuryType("");
-        setSeverity("Leve");
-        setDateOfInjury("");
-        setEstimatedRecoveryDays("");
-        setStatus("En recuperación");
-        setDescription("");
-      } else {
-        const error = await res.json();
-        alert(error.error || "Error al guardar");
-      }
-    } catch (error) {
-      console.error("Error:", error);
-      alert("Error de conexión");
-    }
+  const getActiveInjury = (player: PlayerWithInjuries) => {
+    return player.injuries.find(i => i.status === "En recuperación" || i.status === "Recaída") || null;
   };
 
   const severityColors: Record<string, string> = {
-    Leve: "bg-green-100 text-green-800",
-    Moderada: "bg-yellow-100 text-yellow-800",
-    Grave: "bg-red-100 text-red-800",
+    Leve: "bg-green-100 text-green-800 border-green-200",
+    Moderada: "bg-yellow-100 text-yellow-800 border-yellow-200",
+    Grave: "bg-red-100 text-red-800 border-red-200",
   };
 
-  const statusColors: Record<string, string> = {
-    "En recuperación": "bg-blue-100 text-blue-800",
-    "Alta médica": "bg-emerald-100 text-emerald-800",
-    "Recaída": "bg-orange-100 text-orange-800",
+  // --- Derived Data for KPIs ---
+  const kpis = useMemo(() => {
+    const currentlyInjured = players.filter(p => getPlayerStatus(p) === "Lesionado").length;
+    
+    // Altas en los últimos 30 días (buscando en todas las lesiones de todos los jugadores)
+    let totalAltas = 0;
+    let totalDays = 0;
+    let injuriesCount = 0;
+
+    players.forEach(p => {
+      p.injuries.forEach(i => {
+        if (i.status === "Alta médica") totalAltas++;
+        totalDays += (i.estimatedRecoveryDays || 0);
+        injuriesCount++;
+      });
+    });
+    
+    const avgDays = injuriesCount > 0 ? Math.round(totalDays / injuriesCount) : 0;
+
+    return { currentlyInjured, totalAltas, avgDays };
+  }, [players]);
+
+  // --- Filter Logic ---
+  const filteredPlayers = useMemo(() => {
+    return players.filter(player => {
+      const matchesSearch = player.name.toLowerCase().includes(searchQuery.toLowerCase());
+      const playerStatus = getPlayerStatus(player);
+      const matchesStatus = statusFilter === "Todos" || playerStatus === statusFilter;
+
+      return matchesSearch && matchesStatus;
+    });
+  }, [players, searchQuery, statusFilter]);
+
+  const openClinicalFile = (player: PlayerWithInjuries) => {
+    setSelectedPlayer(player);
+    setIsClinicalFileOpen(true);
   };
 
   return (
-    <div className="p-8 max-w-7xl mx-auto">
-      <div className="flex justify-between items-center mb-8">
+    <div className="p-8 max-w-7xl mx-auto space-y-8">
+      {/* Header */}
+      <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Módulo Médico</h1>
-          <p className="text-gray-500 mt-1">Gestión de lesiones y recuperación de jugadores</p>
+          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Módulo Médico</h1>
+          <p className="text-gray-500 mt-1">Gestión integral de lesiones y fichas clínicas por jugador</p>
         </div>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-        >
-          + Registrar Nueva Lesión
-        </button>
       </div>
 
-      {isLoading ? (
-        <div className="flex justify-center p-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        </div>
-      ) : (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jugador</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lesión</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gravedad</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Recuperación Est.</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {injuries.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
-                    No hay lesiones registradas
-                  </td>
-                </tr>
-              ) : (
-                injuries.map((injury) => (
-                  <tr key={injury.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="font-medium text-gray-900">{injury.player.name}</div>
-                      <div className="text-sm text-gray-500">{injury.player.position}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900 font-medium">{injury.injuryType}</div>
-                      {injury.description && (
-                        <div className="text-xs text-gray-500 truncate max-w-xs" title={injury.description}>
-                          {injury.description}
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(injury.dateOfInjury).toLocaleDateString("es-CL")}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${severityColors[injury.severity] || "bg-gray-100 text-gray-800"}`}>
-                        {injury.severity}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColors[injury.status] || "bg-gray-100 text-gray-800"}`}>
-                        {injury.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {injury.estimatedRecoveryDays} días
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {/* Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-gray-900">Registrar Lesión</h2>
-              <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600">
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Jugador</label>
-                <select
-                  required
-                  value={playerId}
-                  onChange={(e) => setPlayerId(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                >
-                  <option value="">Seleccione un jugador...</option>
-                  {players.map(p => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Lesión</label>
-                <input
-                  type="text"
-                  required
-                  value={injuryType}
-                  onChange={(e) => setInjuryType(e.target.value)}
-                  placeholder="Ej: Muscular, Esguince de tobillo"
-                  className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Gravedad</label>
-                  <select
-                    value={severity}
-                    onChange={(e) => setSeverity(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                  >
-                    <option value="Leve">Leve</option>
-                    <option value="Moderada">Moderada</option>
-                    <option value="Grave">Grave</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
-                  <select
-                    value={status}
-                    onChange={(e) => setStatus(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                  >
-                    <option value="En recuperación">En recuperación</option>
-                    <option value="Alta médica">Alta médica</option>
-                    <option value="Recaída">Recaída</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Fecha</label>
-                  <input
-                    type="date"
-                    required
-                    value={dateOfInjury}
-                    onChange={(e) => setDateOfInjury(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Días est. de baja</label>
-                  <input
-                    type="number"
-                    required
-                    min="0"
-                    value={estimatedRecoveryDays}
-                    onChange={(e) => setEstimatedRecoveryDays(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Descripción (Opcional)</label>
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  rows={3}
-                  className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none resize-none"
-                ></textarea>
-              </div>
-
-              <div className="pt-4 flex justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 text-gray-700 font-medium hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
-                >
-                  Guardar Lesión
-                </button>
-              </div>
-            </form>
+      {/* KPIs Panel */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm flex items-center gap-4">
+          <div className="p-4 bg-orange-50 rounded-xl text-orange-600">
+            <Activity className="w-8 h-8" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-gray-500">Plantel Lesionado</p>
+            <p className="text-3xl font-bold text-gray-900">{kpis.currentlyInjured} <span className="text-base text-gray-400 font-medium">/ {players.length}</span></p>
           </div>
         </div>
-      )}
+        
+        <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm flex items-center gap-4">
+          <div className="p-4 bg-emerald-50 rounded-xl text-emerald-600">
+            <CheckCircle className="w-8 h-8" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-gray-500">Altas Médicas (Histórico)</p>
+            <p className="text-3xl font-bold text-gray-900">{kpis.totalAltas}</p>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm flex items-center gap-4">
+          <div className="p-4 bg-blue-50 rounded-xl text-blue-600">
+            <Clock className="w-8 h-8" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-gray-500">Tiempo Promedio Baja</p>
+            <p className="text-3xl font-bold text-gray-900">{kpis.avgDays} <span className="text-base font-medium text-gray-500">días</span></p>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content Area */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        
+        {/* Toolbar */}
+        <div className="p-5 border-b border-gray-100 bg-gray-50/50 flex flex-col sm:flex-row gap-4 items-center justify-between">
+          <div className="relative w-full sm:w-96">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input 
+              type="text" 
+              placeholder="Buscar por jugador..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+            />
+          </div>
+          <div className="flex gap-3 w-full sm:w-auto">
+            <div className="relative w-full sm:w-48">
+              <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <select 
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl appearance-none bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm font-medium text-gray-700 cursor-pointer"
+              >
+                <option value="Todos">Todo el Plantel</option>
+                <option value="Sano">Sanos</option>
+                <option value="Lesionado">Lesionados</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Table */}
+        {isLoading ? (
+          <HuachipatoLoader />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-100">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Jugador</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Estado Actual</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Último Diagnóstico</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Gravedad</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Baja Proyectada</th>
+                  <th className="px-6 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Ficha</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-50">
+                {filteredPlayers.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-12 text-center">
+                      <div className="flex flex-col items-center justify-center text-gray-400">
+                        <Users className="w-12 h-12 mb-3 text-gray-300" />
+                        <p className="text-lg font-medium text-gray-900">No se encontraron jugadores</p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  filteredPlayers.map((player) => {
+                    const status = getPlayerStatus(player);
+                    const activeInjury = getActiveInjury(player);
+                    const latestInjury = activeInjury || player.injuries[0]; // If healthy, show the last injury he had
+
+                    return (
+                      <tr key={player.id} className="hover:bg-gray-50/50 transition-colors group">
+                        <td className="px-6 py-5 whitespace-nowrap">
+                          <div className="flex items-center gap-3">
+                            <div className={`h-10 w-10 rounded-full flex items-center justify-center font-bold text-sm ${status === 'Sano' ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
+                              {player.name.charAt(0)}
+                            </div>
+                            <div>
+                              <div className="font-semibold text-gray-900">{player.name}</div>
+                              <div className="text-xs font-medium text-gray-500">{player.position}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-5 whitespace-nowrap">
+                          <span className={`px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full border flex items-center gap-1.5 ${status === 'Sano' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-red-100 text-red-700 border-red-200'}`}>
+                            <span className="w-1.5 h-1.5 rounded-full bg-current"></span>
+                            {status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-5">
+                          {latestInjury ? (
+                            <>
+                              <div className={`text-sm font-semibold ${activeInjury ? 'text-gray-900' : 'text-gray-400'}`}>{latestInjury.injuryType}</div>
+                              <div className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                {new Date(latestInjury.dateOfInjury).toLocaleDateString("es-CL")}
+                              </div>
+                            </>
+                          ) : (
+                            <span className="text-sm text-gray-400 italic">Sin historial</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-5 whitespace-nowrap">
+                          {latestInjury ? (
+                            <span className={`px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full border ${activeInjury ? severityColors[latestInjury.severity] : 'bg-gray-50 text-gray-400 border-gray-100'}`}>
+                              {latestInjury.severity}
+                            </span>
+                          ) : (
+                            <span className="text-gray-300">-</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-5 whitespace-nowrap">
+                          {activeInjury ? (
+                            <div className="text-sm font-semibold text-red-600">{activeInjury.estimatedRecoveryDays} días</div>
+                          ) : latestInjury ? (
+                            <div className="text-sm font-medium text-gray-400 line-through">{latestInjury.estimatedRecoveryDays} días</div>
+                          ) : (
+                            <span className="text-gray-300">-</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-5 whitespace-nowrap text-right text-sm font-medium">
+                          <button 
+                            onClick={() => openClinicalFile(player)}
+                            className="inline-flex items-center gap-2 px-3 py-1.5 text-blue-600 bg-blue-50 hover:bg-blue-100 font-semibold rounded-lg transition-colors"
+                          >
+                            <HeartPulse className="w-4 h-4" />
+                            Abrir Ficha
+                          </button>
+                        </td>
+                      </tr>
+                    )
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Clinical File SlideOver */}
+      <ClinicalFileSlideOver 
+        isOpen={isClinicalFileOpen} 
+        onClose={() => setIsClinicalFileOpen(false)} 
+        player={selectedPlayer} 
+        onUpdate={fetchData}
+      />
     </div>
   );
 }

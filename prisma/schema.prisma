@@ -31,6 +31,7 @@ model Player {
   id        String   @id @default(cuid())
   name      String   @unique
   position  Position @default(MEDIOCAMPISTA)
+  photo     String?  @db.Text
   createdAt DateTime @default(now()) @map("created_at")
 
   gpsDailyReports  GpsDailyReport[]
