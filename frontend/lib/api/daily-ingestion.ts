@@ -122,7 +122,7 @@ function parseCsvBuffer(buffer: Buffer): ParsedRow[] {
       console.warn(
         "Fila ignorada por formato inválido:",
         mapped,
-        validation.error.errors
+        validation.error.issues
       );
     }
   }
