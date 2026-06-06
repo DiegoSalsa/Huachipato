@@ -259,6 +259,6 @@ export default function JugadorPerfilPage({ params }: { params: Promise<{ id: st
           </section>
         </div>
       </main>
-    </div>
+    </main>
   );
 }
