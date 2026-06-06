@@ -1,5 +1,5 @@
 import { PrismaClient, Prisma } from "@prisma/client";
-import { getISOWeek } from "@/backend/services/weekly-aggregator";
+import { getISOWeek } from "@/lib/services/weekly-aggregator";
 
 /**
  * Daily Aggregator Service

@@ -1,4 +1,4 @@
-import { prisma } from "@/backend/lib/db";
+import { prisma } from "@/lib/prisma";
 import type { Position } from "@prisma/client";
 
 export async function listPlayers() {

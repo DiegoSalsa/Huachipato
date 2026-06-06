@@ -1,5 +1,5 @@
-import { prisma } from "@/backend/lib/db";
-import { getISOWeek } from "@/backend/services/weekly-aggregator";
+import { prisma } from "@/lib/prisma";
+import { getISOWeek } from "@/lib/services/weekly-aggregator";
 
 /**
  * Daily / Weekly Overview Service

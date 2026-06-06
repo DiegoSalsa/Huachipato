@@ -18,9 +18,6 @@
     "paths": {
       "@/*": [
         "./*"
-      ],
-      "@/backend/*": [
-        "../backend/*"
       ]
     },
     "resolveJsonModule": true,
@@ -38,9 +35,7 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts",
     "**/*.ts",
-    "**/*.tsx",
-    "../backend/**/*.ts",
-    "../backend/**/*.tsx"
+    "**/*.tsx"
   ],
   "exclude": [
     "node_modules"

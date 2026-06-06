@@ -1,4 +1,4 @@
-import { processDailyUpload, processWeeklyUpload } from "@/backend/api/upload";
+import { processDailyUpload, processWeeklyUpload } from "@/lib/api/upload";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {

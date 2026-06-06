@@ -1,4 +1,4 @@
-import { processDailyCsvUpload } from "@/backend/api/daily-ingestion";
+import { processDailyCsvUpload } from "@/lib/api/daily-ingestion";
 import { NextRequest, NextResponse } from "next/server";
 
 /**

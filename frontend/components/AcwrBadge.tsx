@@ -1,6 +1,6 @@
 "use client";
 
-import type { AcwrRisk } from "@/backend/services/acwr";
+import type { AcwrRisk } from "@/lib/services/acwr";
 
 const riskConfig: Record<
   string,

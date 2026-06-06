@@ -1,6 +1,6 @@
-import { getDailyWeeklyOverview } from "@/backend/services/daily-weekly-overview";
+import { getDailyWeeklyOverview } from "@/lib/services/daily-weekly-overview";
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/backend/lib/db";
+import { prisma } from "@/lib/prisma";
 
 /**
  * GET /api/overview?date=2026-05-20

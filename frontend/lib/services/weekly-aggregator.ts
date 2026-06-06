@@ -1,4 +1,4 @@
-import { prisma } from "@/backend/lib/db";
+import { prisma } from "@/lib/prisma";
 
 /**
  * Weekly Aggregator Service

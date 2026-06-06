@@ -39,7 +39,7 @@ async function main() {
   await prisma.$executeRawUnsafe(
     `ALTER SEQUENCE IF EXISTS weekly_stats_id_seq RESTART WITH 1;`,
   );
-
+  
   console.log("\n  ✓ Secuencias de IDs reiniciadas");
 
   // Create default admin user

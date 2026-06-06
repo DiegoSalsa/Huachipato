@@ -1,4 +1,4 @@
-import { listPlayers, createPlayer } from "@/backend/api/players";
+import { listPlayers, createPlayer } from "@/lib/api/players";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET() {

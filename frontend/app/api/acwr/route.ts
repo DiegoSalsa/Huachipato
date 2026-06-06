@@ -1,4 +1,4 @@
-import { computeAllPlayersACWR, getAvailableWeeks } from "@/backend/services/acwr";
+import { computeAllPlayersACWR, getAvailableWeeks } from "@/lib/services/acwr";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {

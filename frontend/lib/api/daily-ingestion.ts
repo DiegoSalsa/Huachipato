@@ -1,8 +1,8 @@
-import { prisma } from "@/backend/lib/db";
-import { normalizeName, parseFloatSafe, parseIntSafe } from "@/backend/lib/utils";
+import { prisma } from "@/lib/prisma";
+import { normalizeName, parseFloatSafe, parseIntSafe } from "@/lib/utils";
 import { parse } from "csv-parse/sync";
-import { getISOWeek, aggregateWeekForPlayer } from "@/backend/services/weekly-aggregator";
-import { aggregateDailySessionsBatch } from "@/backend/services/daily-aggregator";
+import { getISOWeek, aggregateWeekForPlayer } from "@/lib/services/weekly-aggregator";
+import { aggregateDailySessionsBatch } from "@/lib/services/daily-aggregator";
 
 // ─── Types ──────────────────────────────────────────────────────────
 
