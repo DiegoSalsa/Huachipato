@@ -258,9 +258,34 @@ export default function JugadorPerfilPage({ params }: { params: Promise<{ id: st
                   <h1 className="text-2xl md:text-3xl font-black tracking-tight text-slate-900">{player.name}</h1>
                   <p className="mt-1 text-sm font-medium text-slate-500">Perfil Profesional de Rendimiento</p>
                   <div className="mt-3 flex flex-wrap items-center justify-center md:justify-start gap-2 text-xs font-semibold">
-                    <span className="rounded-full border border-slate-200 bg-white px-3 py-1">
-                      {positionLabels[player.position] ?? player.position}
-                    </span>
+                    <div className="relative">
+                      <select
+                        value={player.position}
+                        onChange={async (e) => {
+                          const newPos = e.target.value;
+                          try {
+                            const res = await fetch(`/api/players/${player.id}`, {
+                              method: "PATCH",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ position: newPos }),
+                            });
+                            if (res.ok) {
+                              setPlayer({ ...player, position: newPos });
+                            }
+                          } catch {
+                            // silently fail
+                          }
+                        }}
+                        className="appearance-none rounded-full border border-slate-200 bg-white pl-3 pr-7 py-1 text-xs font-semibold text-slate-700 outline-none cursor-pointer hover:border-[#0085CB] focus:border-[#0085CB] focus:ring-2 focus:ring-[#0085CB]/20 transition-all"
+                      >
+                        {Object.entries(positionLabels).map(([key, label]) => (
+                          <option key={key} value={key}>{label}</option>
+                        ))}
+                      </select>
+                      <span className="material-symbols-outlined pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs">
+                        expand_more
+                      </span>
+                    </div>
                     {latest && (
                       <AcwrBadge risk={latest.risk as any} />
                     )}

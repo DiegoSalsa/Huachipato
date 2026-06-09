@@ -100,3 +100,40 @@ export async function GET(
     );
   }
 }
+
+const VALID_POSITIONS = ["PORTERO", "DEFENSA", "MEDIOCAMPISTA", "DELANTERO"];
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const body = await request.json();
+    const { position } = body;
+
+    if (!position || !VALID_POSITIONS.includes(position)) {
+      return NextResponse.json(
+        { error: "Posición inválida. Valores válidos: " + VALID_POSITIONS.join(", ") },
+        { status: 400 }
+      );
+    }
+
+    const updated = await prisma.player.update({
+      where: { id },
+      data: { position },
+    });
+
+    return NextResponse.json({
+      id: updated.id,
+      name: updated.name,
+      position: updated.position,
+    });
+  } catch (err) {
+    console.error("Error updating player:", err);
+    return NextResponse.json(
+      { error: "Error al actualizar jugador" },
+      { status: 500 }
+    );
+  }
+}
