@@ -220,7 +220,7 @@ export default function JugadorPerfilPage({ params }: { params: Promise<{ id: st
           <div className="mx-auto w-full max-w-6xl">
             <Link href="/" className="inline-flex items-center gap-2 text-sm font-semibold text-[#0085CB] hover:underline mb-4">
               <span className="material-symbols-outlined text-sm">arrow_back</span>
-              Volver al Monitor ACWR
+              Volver al Monitor ACS
             </Link>
             
             <div className="rounded-3xl border border-slate-200 bg-gradient-to-r from-slate-50 to-white p-5">
@@ -318,7 +318,7 @@ export default function JugadorPerfilPage({ params }: { params: Promise<{ id: st
                 {player.history.length ? (
                   <AreaComparisonChart data={player.history} />
                 ) : (
-                  <p className="py-20 text-center text-sm text-slate-500">No hay datos ACWR disponibles.</p>
+                  <p className="py-20 text-center text-sm text-slate-500">No hay datos ACS disponibles.</p>
                 )}
               </div>
               <div className="mt-2 flex justify-center gap-6 text-xs font-medium text-slate-600">

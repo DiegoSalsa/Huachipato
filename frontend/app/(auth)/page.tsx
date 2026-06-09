@@ -129,7 +129,7 @@ export default function DashboardPage() {
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
               <h1 className="text-3xl font-black tracking-tight text-slate-900">
-                Monitor ACWR
+                Monitor ACS
               </h1>
               <p className="mt-1 text-sm font-medium text-slate-500">
                 Ratio Carga Aguda:Crónica del plantel ·{" "}
@@ -240,7 +240,7 @@ export default function DashboardPage() {
           ) : players.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20">
               <span className="material-symbols-outlined text-6xl text-slate-300">sports_soccer</span>
-              <h3 className="mt-4 text-xl font-bold text-slate-400">Sin datos ACWR</h3>
+              <h3 className="mt-4 text-xl font-bold text-slate-400">Sin datos ACS</h3>
               <p className="mt-1 text-sm text-slate-400">
                 Sube un CSV o ejecuta el seeder para comenzar.
               </p>
@@ -249,7 +249,7 @@ export default function DashboardPage() {
             <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
               <div className="border-b border-slate-100 bg-slate-50/70 px-6 py-4">
                 <h2 className="text-lg font-bold text-slate-900">
-                  Tabla ACWR del Plantel
+                  Tabla ACS del Plantel
                 </h2>
                 <p className="text-xs font-medium text-slate-500">
                   Ratios calculados con fórmula de carga crónica {period} días · Semáforo de riesgo
@@ -354,7 +354,7 @@ export default function DashboardPage() {
           {/* Legend */}
           <div className="rounded-xl bg-slate-50 border border-slate-200 p-4">
             <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-3">
-              Guía de Semáforo ACWR
+              Guía de Semáforo ACS
             </p>
             <div className="flex flex-wrap gap-4">
               <div className="flex items-center gap-2">

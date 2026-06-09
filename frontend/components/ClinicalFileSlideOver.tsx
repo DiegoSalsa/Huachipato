@@ -261,7 +261,7 @@ export default function ClinicalFileSlideOver({ isOpen, onClose, player, onUpdat
               </h4>
               <div className="bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-xl p-5 shadow-sm">
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm font-medium text-gray-700">Estado ACWR</span>
+                  <span className="text-sm font-medium text-gray-700">Estado ACS</span>
                   {acwrRatio !== null ? (
                      <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${acwrBgColor} ${acwrColor}`}>
                        {acwrRatio.toFixed(2)}

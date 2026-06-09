@@ -195,7 +195,7 @@ export default function IngestaPage() {
               Ingesta de Datos GPS
             </h1>
             <p className="mt-1 text-sm font-medium text-slate-500">
-              Sube archivos CSV/Excel para alimentar el motor de cálculo ACWR
+              Sube archivos CSV/Excel para alimentar el motor de cálculo ACS
             </p>
           </div>
         </header>

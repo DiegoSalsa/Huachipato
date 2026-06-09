@@ -12,7 +12,7 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { href: "/", icon: "monitoring", label: "Monitor ACWR" },
+  { href: "/", icon: "monitoring", label: "Monitor ACS" },
   { href: "/resumen", icon: "calendar_today", label: "Resumen Diario" },
   { href: "/jugadores", icon: "groups", label: "Jugadores" },
   { href: "/medico", icon: "medical_services", label: "Panel Médico" },
@@ -45,7 +45,7 @@ export default function Sidebar() {
         </div>
         <div>
           <h1 className="text-sm font-bold uppercase tracking-wider">Huachipato</h1>
-          <p className="text-[10px] text-white/70 font-medium">Monitor ACWR</p>
+          <p className="text-[10px] text-white/70 font-medium">Monitor ACS</p>
         </div>
       </div>
 
@@ -85,7 +85,7 @@ export default function Sidebar() {
           <span>Cerrar Sesión</span>
         </button>
         <div className="px-3 py-2 text-white/40 text-[10px] font-medium">
-          Sistema ACWR v1.0
+          Sistema ACS v1.0
         </div>
       </div>
       </aside>
