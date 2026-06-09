@@ -8,6 +8,12 @@
   --font-display: "Manrope", sans-serif;
 }
 
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+  width: 100%;
+}
+
 body {
   font-family: var(--font-display);
   background: #ffffff;
@@ -27,4 +33,21 @@ body {
   stroke: #e2e8f0;
   stroke-width: 1;
   fill: none;
+}
+
+/* Mobile-safe bottom padding (for pages with bottom nav) */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Mobile card for table replacement */
+.mobile-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
+  padding: 1rem;
+  background: #fff;
+  transition: box-shadow 0.15s ease;
+}
+.mobile-card:active {
+  box-shadow: 0 0 0 2px rgba(0, 133, 203, 0.2);
 }

@@ -47,7 +47,7 @@ function AreaComparisonChart({ data }: { data: HistoryPoint[] }) {
   const chronicPath = chronicPoints.map((point) => `${point.x},${point.y}`).join(" ");
 
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} className="h-[270px] w-full">
+    <svg viewBox={`0 0 ${width} ${height}`} className="w-full" preserveAspectRatio="xMidYMid meet">
       {[0.25, 0.5, 0.75, 1].map((scale) => {
         const y = height - padY - (height - padY * 2) * scale;
         return <line key={scale} x1={padX} y1={y} x2={width - padX} y2={y} stroke="#e2e8f0" strokeWidth={1} />;
@@ -99,7 +99,7 @@ function DualAxisLineChart({ data }: { data: HistoryPoint[] }) {
   const impPoints = data.map((point, index) => toPointImp(point.acuteMechImpacts, index));
 
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} className="h-[240px] w-full">
+    <svg viewBox={`0 0 ${width} ${height}`} className="w-full" preserveAspectRatio="xMidYMid meet">
       {[0.25, 0.5, 0.75, 1].map((scale) => {
         const y = height - padY - (height - padY * 2) * scale;
         return <line key={scale} x1={padX} y1={y} x2={width - padX} y2={y} stroke="#e2e8f0" strokeWidth={1} />;
@@ -215,104 +215,106 @@ export default function JugadorPerfilPage({ params }: { params: Promise<{ id: st
   const latest = player.history.length > 0 ? player.history[player.history.length - 1] : null;
 
   return (
-    <main className="flex flex-col flex-1 bg-white pb-20 md:pb-0">
-      <main className="flex flex-1 flex-col overflow-y-auto bg-white pb-20 md:pb-0">
-        <header className="border-b border-slate-200 bg-white px-6 py-6 md:px-10">
+    <div className="flex flex-col bg-white min-h-full">
+        <header className="border-b border-slate-200 bg-white px-4 py-6 md:px-10">
           <div className="mx-auto w-full max-w-6xl">
             <Link href="/" className="inline-flex items-center gap-2 text-sm font-semibold text-[#0085CB] hover:underline mb-4">
               <span className="material-symbols-outlined text-sm">arrow_back</span>
               Volver al Monitor ACWR
             </Link>
             
-            <div className="grid grid-cols-1 gap-5 rounded-3xl border border-slate-200 bg-gradient-to-r from-slate-50 to-white p-5 md:grid-cols-[auto_1fr_auto] md:items-center">
-              <div 
-                className="relative h-24 w-24 overflow-hidden rounded-2xl border border-slate-200 bg-[#0085CB]/10 flex items-center justify-center cursor-pointer group shrink-0"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                {uploadingPhoto ? (
-                  <div className="absolute inset-0 flex items-center justify-center bg-white/50 z-20">
-                    <div className="size-6 animate-spin rounded-full border-2 border-[#0085CB] border-t-transparent" />
-                  </div>
-                ) : null}
-                
-                {player.photo ? (
-                  <img src={player.photo} alt={player.name} className="w-full h-full object-cover" />
-                ) : (
-                  <span className="material-symbols-outlined text-5xl text-[#0085CB]">person</span>
-                )}
-                
-                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                  <span className="material-symbols-outlined text-white text-2xl">photo_camera</span>
-                </div>
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  className="hidden" 
-                  ref={fileInputRef}
-                  onChange={handleImageUpload}
-                />
-              </div>
-
-              <div>
-                <h1 className="text-3xl font-black tracking-tight text-slate-900">{player.name}</h1>
-                <p className="mt-1 text-sm font-medium text-slate-500">Perfil Profesional de Rendimiento</p>
-                <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-semibold">
-                  <span className="rounded-full border border-slate-200 bg-white px-3 py-1">
-                    {positionLabels[player.position] ?? player.position}
-                  </span>
-                  {latest && (
-                    <AcwrBadge risk={latest.risk as any} />
+            <div className="rounded-3xl border border-slate-200 bg-gradient-to-r from-slate-50 to-white p-5">
+              {/* Mobile: stack vertically. Desktop: horizontal grid */}
+              <div className="flex flex-col gap-5 md:grid md:grid-cols-[auto_1fr_auto] md:items-center">
+                <div 
+                  className="relative h-20 w-20 md:h-24 md:w-24 overflow-hidden rounded-2xl border border-slate-200 bg-[#0085CB]/10 flex items-center justify-center cursor-pointer group shrink-0 mx-auto md:mx-0"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  {uploadingPhoto ? (
+                    <div className="absolute inset-0 flex items-center justify-center bg-white/50 z-20">
+                      <div className="size-6 animate-spin rounded-full border-2 border-[#0085CB] border-t-transparent" />
+                    </div>
+                  ) : null}
+                  
+                  {player.photo ? (
+                    <img src={player.photo} alt={player.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="material-symbols-outlined text-4xl md:text-5xl text-[#0085CB]">person</span>
                   )}
+                  
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                    <span className="material-symbols-outlined text-white text-2xl">photo_camera</span>
+                  </div>
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    className="hidden" 
+                    ref={fileInputRef}
+                    onChange={handleImageUpload}
+                  />
                 </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-3 md:grid-cols-2">
-                <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-center md:min-w-[150px]">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">Dist. Semanal</p>
-                  <p className="text-2xl font-black text-slate-900">
-                    {latest ? `${(latest.acuteDistance / 1000).toFixed(1)}km` : "-"}
-                  </p>
+                <div className="text-center md:text-left">
+                  <h1 className="text-2xl md:text-3xl font-black tracking-tight text-slate-900">{player.name}</h1>
+                  <p className="mt-1 text-sm font-medium text-slate-500">Perfil Profesional de Rendimiento</p>
+                  <div className="mt-3 flex flex-wrap items-center justify-center md:justify-start gap-2 text-xs font-semibold">
+                    <span className="rounded-full border border-slate-200 bg-white px-3 py-1">
+                      {positionLabels[player.position] ?? player.position}
+                    </span>
+                    {latest && (
+                      <AcwrBadge risk={latest.risk as any} />
+                    )}
+                  </div>
                 </div>
-                <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-center md:min-w-[150px]">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">Impactos</p>
-                  <p className="text-2xl font-black text-slate-900">{latest?.acuteMechImpacts ?? "-"}</p>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 md:px-4 md:py-3 text-center md:min-w-[150px]">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">Dist. Semanal</p>
+                    <p className="text-xl md:text-2xl font-black text-slate-900">
+                      {latest ? `${(latest.acuteDistance / 1000).toFixed(1)}km` : "-"}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 md:px-4 md:py-3 text-center md:min-w-[150px]">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">Impactos</p>
+                    <p className="text-xl md:text-2xl font-black text-slate-900">{latest?.acuteMechImpacts ?? "-"}</p>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </header>
 
-        <div className="mx-auto w-full max-w-6xl space-y-6 p-6 md:p-10">
+        <div className="mx-auto w-full max-w-6xl space-y-6 p-4 md:p-10 overflow-hidden">
           <section className="space-y-6">
-            <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-              <div className="rounded-xl border border-slate-200 bg-white p-4 text-center">
+            <div className="grid grid-cols-2 gap-3 md:gap-4 md:grid-cols-4">
+              <div className="rounded-xl border border-slate-200 bg-white p-3 md:p-4 text-center">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Carga Aguda (Dist)</p>
-                <p className="text-2xl font-black text-[#0085CB]">
+                <p className="text-xl md:text-2xl font-black text-[#0085CB]">
                   {latest ? `${(latest.acuteDistance / 1000).toFixed(1)}k` : "-"}
                 </p>
               </div>
-              <div className="rounded-xl border border-slate-200 bg-white p-4 text-center">
+              <div className="rounded-xl border border-slate-200 bg-white p-3 md:p-4 text-center">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Carga Crónica (Dist)</p>
-                <p className="text-2xl font-black text-slate-600">
+                <p className="text-xl md:text-2xl font-black text-slate-600">
                   {latest ? `${(latest.chronicDistance28 / 1000).toFixed(1)}k` : "-"}
                 </p>
               </div>
-              <div className="rounded-xl border border-slate-200 bg-white p-4 text-center">
+              <div className="rounded-xl border border-slate-200 bg-white p-3 md:p-4 text-center">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">A:C Distancia</p>
-                <p className="text-2xl font-black text-slate-900">
+                <p className="text-xl md:text-2xl font-black text-slate-900">
                   {latest && latest.chronicDistance28 > 0 ? (latest.acuteDistance / latest.chronicDistance28).toFixed(2) : "-"}
                 </p>
               </div>
-              <div className="rounded-xl border border-slate-200 bg-white p-4 text-center">
+              <div className="rounded-xl border border-slate-200 bg-white p-3 md:p-4 text-center">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Semanas Registradas</p>
-                <p className="text-2xl font-black text-emerald-600">{player.history.length}</p>
+                <p className="text-xl md:text-2xl font-black text-emerald-600">{player.history.length}</p>
               </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 md:p-6 shadow-sm">
-              <h3 className="text-xl font-bold text-slate-900">Carga Aguda vs Carga Crónica (Distancia)</h3>
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 md:p-6 shadow-sm">
+              <h3 className="text-lg md:text-xl font-bold text-slate-900">Carga Aguda vs Carga Crónica (Distancia)</h3>
               <p className="text-xs font-medium text-slate-500">Evolución histórica de volumen de trabajo</p>
-              <div className="mt-4">
+              <div className="mt-4 w-full overflow-hidden">
                 {player.history.length ? (
                   <AreaComparisonChart data={player.history} />
                 ) : (
@@ -325,10 +327,10 @@ export default function JugadorPerfilPage({ params }: { params: Promise<{ id: st
               </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 md:p-6 shadow-sm">
-              <h3 className="text-xl font-bold text-slate-900">Alta Velocidad vs Impactos Mecánicos</h3>
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 md:p-6 shadow-sm">
+              <h3 className="text-lg md:text-xl font-bold text-slate-900">Alta Velocidad vs Impactos Mecánicos</h3>
               <p className="text-xs font-medium text-slate-500">Métricas de intensidad pura (Escalas independientes)</p>
-              <div className="mt-4">
+              <div className="mt-4 w-full overflow-hidden">
                 {player.history.length ? (
                   <DualAxisLineChart data={player.history} />
                 ) : (
@@ -342,7 +344,6 @@ export default function JugadorPerfilPage({ params }: { params: Promise<{ id: st
             </div>
           </section>
         </div>
-      </main>
-    </main>
+    </div>
   );
 }

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import Sidebar from "@/components/Sidebar";
 import HuachipatoLoader from "@/components/HuachipatoLoader";
 
 // ─── Types ──────────────────────────────────────────────────────────
@@ -168,9 +167,7 @@ export default function ResumenPage() {
     : "Cargando...";
 
   return (
-    <div className="flex h-screen overflow-hidden">
-      <Sidebar />
-      <main className="flex-1 flex flex-col overflow-y-auto bg-white pb-20 md:pb-0">
+      <div className="flex flex-col bg-white min-h-full">
         {/* Header */}
         <header className="border-b border-slate-200 bg-white px-4 py-5 md:px-8">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -199,7 +196,7 @@ export default function ResumenPage() {
           </div>
         </header>
 
-        <div className="space-y-6 p-4 md:p-8">
+        <div className="space-y-6 p-4 md:p-8 overflow-hidden">
           {/* Tab Switcher */}
           <div className="flex gap-2 p-1 bg-slate-100 rounded-xl w-fit">
             <button
@@ -248,7 +245,7 @@ export default function ResumenPage() {
               {activeTab === "today" && (
                 <div className="space-y-6 animate-in fade-in">
                   {/* KPI Cards */}
-                  <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+                  <div className="grid grid-cols-2 gap-3 md:gap-4 md:grid-cols-4">
                     <StatCard
                       icon="group"
                       label="Jugadores"
@@ -307,7 +304,9 @@ export default function ResumenPage() {
                           Datos GPS individuales por jugador · Suma de todas las sesiones del día
                         </p>
                       </div>
-                      <div className="overflow-x-auto">
+
+                      {/* Desktop Table */}
+                      <div className="hidden md:block overflow-x-auto">
                         <table className="w-full text-left text-sm">
                           <thead className="border-b border-slate-100 bg-slate-50 text-xs font-bold uppercase tracking-wide text-slate-600">
                             <tr>
@@ -367,6 +366,40 @@ export default function ResumenPage() {
                           </tbody>
                         </table>
                       </div>
+
+                      {/* Mobile Card View */}
+                      <div className="md:hidden divide-y divide-slate-100">
+                        {daily.map((p) => (
+                          <div key={p.playerId} className="p-4">
+                            <div className="flex items-center justify-between mb-2">
+                              <div>
+                                <p className="font-semibold text-slate-900 text-sm">{p.playerName}</p>
+                                <p className="text-xs text-slate-500">{positionLabels[p.position] ?? p.position}</p>
+                              </div>
+                              {p.sessionsCount > 1 && (
+                                <span className="inline-flex items-center gap-1 rounded-lg bg-violet-50 px-2 py-0.5 text-[10px] font-bold text-violet-700">
+                                  <span className="material-symbols-outlined text-[10px]">repeat</span>
+                                  {p.sessionsCount} ses.
+                                </span>
+                              )}
+                            </div>
+                            <div className="grid grid-cols-3 gap-2 mt-2">
+                              <div className="text-center rounded-lg bg-slate-50 p-2">
+                                <p className="text-[10px] font-bold uppercase text-slate-400">Dist.</p>
+                                <p className="text-sm font-black text-slate-800">{fmtDist(p.totalDistance)}</p>
+                              </div>
+                              <div className="text-center rounded-lg bg-slate-50 p-2">
+                                <p className="text-[10px] font-bold uppercase text-slate-400">HSR</p>
+                                <p className="text-sm font-black text-slate-800">{fmtDist(p.hsr)}</p>
+                              </div>
+                              <div className="text-center rounded-lg bg-slate-50 p-2">
+                                <p className="text-[10px] font-bold uppercase text-slate-400">Sprints</p>
+                                <p className="text-sm font-black text-slate-800">{p.sprints}</p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -386,7 +419,7 @@ export default function ResumenPage() {
                   )}
 
                   {/* KPI Cards */}
-                  <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+                  <div className="grid grid-cols-2 gap-3 md:gap-4 md:grid-cols-4">
                     <StatCard
                       icon="group"
                       label="Jugadores"
@@ -439,7 +472,9 @@ export default function ResumenPage() {
                           Suma de métricas GPS de Lunes a Domingo · Semana {data?.weekNumber}
                         </p>
                       </div>
-                      <div className="overflow-x-auto">
+
+                      {/* Desktop Table */}
+                      <div className="hidden md:block overflow-x-auto">
                         <table className="w-full text-left text-sm">
                           <thead className="border-b border-slate-100 bg-slate-50 text-xs font-bold uppercase tracking-wide text-slate-600">
                             <tr>
@@ -495,6 +530,37 @@ export default function ResumenPage() {
                           </tbody>
                         </table>
                       </div>
+
+                      {/* Mobile Card View */}
+                      <div className="md:hidden divide-y divide-slate-100">
+                        {weekly.map((p) => (
+                          <div key={p.playerId} className="p-4">
+                            <div className="flex items-center justify-between mb-2">
+                              <div>
+                                <p className="font-semibold text-slate-900 text-sm">{p.playerName}</p>
+                                <p className="text-xs text-slate-500">{positionLabels[p.position] ?? p.position}</p>
+                              </div>
+                              <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                                {p.daysWithData}<span className="text-emerald-500 font-normal">/7</span> días
+                              </span>
+                            </div>
+                            <div className="grid grid-cols-3 gap-2 mt-2">
+                              <div className="text-center rounded-lg bg-slate-50 p-2">
+                                <p className="text-[10px] font-bold uppercase text-slate-400">Dist.</p>
+                                <p className="text-sm font-black text-slate-800">{fmtDist(p.totalDistance)}</p>
+                              </div>
+                              <div className="text-center rounded-lg bg-slate-50 p-2">
+                                <p className="text-[10px] font-bold uppercase text-slate-400">HSR</p>
+                                <p className="text-sm font-black text-slate-800">{fmtDist(p.hsr)}</p>
+                              </div>
+                              <div className="text-center rounded-lg bg-slate-50 p-2">
+                                <p className="text-[10px] font-bold uppercase text-slate-400">Sprints</p>
+                                <p className="text-sm font-black text-slate-800">{p.sprints}</p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -502,7 +568,6 @@ export default function ResumenPage() {
             </>
           )}
         </div>
-      </main>
-    </div>
+      </div>
   );
 }

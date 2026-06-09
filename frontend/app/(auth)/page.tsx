@@ -123,7 +123,7 @@ export default function DashboardPage() {
       : players.filter((p) => getRisk(p) === activeFilter);
 
   return (
-    <main className="flex-1 flex flex-col overflow-y-auto bg-white">
+    <div className="flex flex-col bg-white min-h-full">
         {/* Header */}
         <header className="border-b border-slate-200 bg-white px-4 py-5 md:px-8">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -136,7 +136,7 @@ export default function DashboardPage() {
                 {data ? `Semana ${data.week}, ${data.year}` : "Cargando..."}
               </p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3 w-full md:w-auto mt-2 md:mt-0">
               {/* Week Selector */}
               {data && data.availableWeeks.length > 0 && (
                 <div className="relative">
@@ -181,9 +181,9 @@ export default function DashboardPage() {
           </div>
         </header>
 
-        <div className="space-y-6 p-4 md:p-8">
+        <div className="space-y-6 p-4 md:p-8 overflow-hidden">
           {/* KPI Cards */}
-          <section className="grid grid-cols-2 gap-4 md:grid-cols-5">
+          <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-5">
             <div className="rounded-2xl border border-slate-200 p-4">
               <p className="text-xs font-bold uppercase tracking-widest text-slate-400">
                 Jugadores
@@ -255,7 +255,9 @@ export default function DashboardPage() {
                   Ratios calculados con fórmula de carga crónica {period} días · Semáforo de riesgo
                 </p>
               </div>
-              <div className="overflow-x-auto">
+
+              {/* Desktop Table */}
+              <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-left text-sm">
                   <thead className="border-b border-slate-100 bg-slate-50 text-xs font-bold uppercase tracking-wide text-slate-600">
                     <tr>
@@ -307,6 +309,45 @@ export default function DashboardPage() {
                   </tbody>
                 </table>
               </div>
+
+              {/* Mobile Card View */}
+              <div className="md:hidden divide-y divide-slate-100">
+                {filtered.map((player) => (
+                  <Link
+                    key={player.playerId}
+                    href={`/jugadores/${player.playerId}`}
+                    className="block p-4 hover:bg-slate-50/50 transition-colors active:bg-slate-100"
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <p className="font-semibold text-slate-900">{player.playerName}</p>
+                        <p className="text-xs text-slate-500">{positionLabels[player.position] ?? player.position}</p>
+                      </div>
+                      <AcwrBadge risk={getRisk(player)} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+                      <div className="flex justify-between">
+                        <span className="text-slate-400 font-medium">Dist. Semanal</span>
+                        <span className="font-bold text-slate-700">
+                          {player.currentWeek ? `${(player.currentWeek.totalDistance / 1000).toFixed(1)} km` : "—"}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400 font-medium">A:C Dist.</span>
+                        <RatioCell ratio={period === "28" ? player.ratioDistance28 : player.ratioDistance21} risk={period === "28" ? player.riskDistance : player.riskDistance21} />
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400 font-medium">A:C Alta Vel.</span>
+                        <RatioCell ratio={period === "28" ? player.ratioHighVelocity28 : player.ratioHighVelocity21} risk={period === "28" ? player.riskHighVelocity : player.riskHighVelocity21} />
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400 font-medium">A:C Impactos</span>
+                        <RatioCell ratio={period === "28" ? player.ratioMechImpacts28 : player.ratioMechImpacts21} risk={period === "28" ? player.riskMechImpacts : player.riskMechImpacts21} />
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
             </div>
           )}
 
@@ -335,6 +376,6 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
-      </main>
+      </div>
   );
 }

@@ -91,12 +91,12 @@ export default function Sidebar() {
       </aside>
 
       {/* Mobile Bottom Nav */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-sidebar flex items-center justify-around p-2 z-50 border-t border-white/10">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-sidebar flex items-center justify-around p-2 z-50 border-t border-white/10" style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}>
         {navItems.map((item) => (
           <Link
             key={item.href}
             href={item.href}
-            className={`flex flex-col items-center gap-1 p-2 rounded-lg transition-colors ${
+            className={`flex flex-col items-center gap-1 py-2.5 px-3 rounded-lg transition-colors min-h-[44px] ${
               isActive(item.href)
                 ? "text-white"
                 : "text-white/60 hover:text-white/80"

@@ -188,8 +188,8 @@ export default function IngestaPage() {
   const previewRows = uploadResult?.preview?.slice(0, 5) ?? [];
 
   return (
-    <main className="flex-1 flex flex-col overflow-y-auto bg-white">
-        <header className="border-b border-slate-200 px-6 py-6 md:px-10">
+    <div className="flex flex-col bg-white min-h-full">
+        <header className="border-b border-slate-200 px-4 py-6 md:px-10">
           <div className="mx-auto max-w-6xl">
             <h1 className="text-3xl font-black tracking-tight text-slate-900">
               Ingesta de Datos GPS
@@ -200,7 +200,7 @@ export default function IngestaPage() {
           </div>
         </header>
 
-        <div className="p-6 md:p-10">
+        <div className="p-4 md:p-10">
           <div className="mx-auto max-w-6xl space-y-8">
             {/* Two Upload Buttons */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -685,6 +685,6 @@ export default function IngestaPage() {
             </div>
           </div>
         )}
-      </main>
+      </div>
   );
 }

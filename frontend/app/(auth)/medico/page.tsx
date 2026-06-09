@@ -101,9 +101,9 @@ export default function MedicoPage() {
   };
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-8">
+    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6 md:space-y-8 overflow-hidden">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Módulo Médico</h1>
           <p className="text-gray-500 mt-1">Gestión integral de lesiones y fichas clínicas por jugador</p>
@@ -111,7 +111,7 @@ export default function MedicoPage() {
       </div>
 
       {/* KPIs Panel */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
         <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm flex items-center gap-4">
           <div className="p-4 bg-orange-50 rounded-xl text-orange-600">
             <Activity className="w-8 h-8" />
@@ -179,7 +179,8 @@ export default function MedicoPage() {
           <HuachipatoLoader />
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-100">
+            {/* Desktop Table */}
+            <table className="hidden md:table min-w-full divide-y divide-gray-100">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Jugador</th>
@@ -204,7 +205,7 @@ export default function MedicoPage() {
                   filteredPlayers.map((player) => {
                     const status = getPlayerStatus(player);
                     const activeInjury = getActiveInjury(player);
-                    const latestInjury = activeInjury || player.injuries[0]; // If healthy, show the last injury he had
+                    const latestInjury = activeInjury || player.injuries[0];
 
                     return (
                       <tr key={player.id} className="hover:bg-gray-50/50 transition-colors group">
@@ -271,6 +272,70 @@ export default function MedicoPage() {
                 )}
               </tbody>
             </table>
+
+            {/* Mobile Card View */}
+            <div className="md:hidden">
+              {filteredPlayers.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-gray-400">
+                  <Users className="w-12 h-12 mb-3 text-gray-300" />
+                  <p className="text-lg font-medium text-gray-900">No se encontraron jugadores</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-gray-100">
+                  {filteredPlayers.map((player) => {
+                    const status = getPlayerStatus(player);
+                    const activeInjury = getActiveInjury(player);
+                    const latestInjury = activeInjury || player.injuries[0];
+
+                    return (
+                      <div key={player.id} className="p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-3">
+                            <div className={`h-10 w-10 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${status === 'Sano' ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
+                              {player.name.charAt(0)}
+                            </div>
+                            <div>
+                              <p className="font-semibold text-gray-900 text-sm">{player.name}</p>
+                              <p className="text-xs text-gray-500">{player.position}</p>
+                            </div>
+                          </div>
+                          <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full border ${status === 'Sano' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-red-100 text-red-700 border-red-200'}`}>
+                            {status}
+                          </span>
+                        </div>
+
+                        {latestInjury && (
+                          <div className="flex items-center justify-between text-xs mb-3 bg-gray-50 rounded-lg p-2.5">
+                            <div>
+                              <p className={`font-semibold ${activeInjury ? 'text-gray-900' : 'text-gray-400'}`}>{latestInjury.injuryType}</p>
+                              <p className="text-gray-400 mt-0.5">{new Date(latestInjury.dateOfInjury).toLocaleDateString("es-CL")}</p>
+                            </div>
+                            <div className="text-right">
+                              {latestInjury && (
+                                <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full border ${activeInjury ? severityColors[latestInjury.severity] : 'bg-gray-50 text-gray-400 border-gray-100'}`}>
+                                  {latestInjury.severity}
+                                </span>
+                              )}
+                              {activeInjury && (
+                                <p className="text-red-600 font-bold mt-1">{activeInjury.estimatedRecoveryDays} días</p>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        <button 
+                          onClick={() => openClinicalFile(player)}
+                          className="w-full inline-flex items-center justify-center gap-2 px-3 py-2.5 text-blue-600 bg-blue-50 hover:bg-blue-100 font-semibold rounded-lg transition-colors text-sm"
+                        >
+                          <HeartPulse className="w-4 h-4" />
+                          Abrir Ficha Clínica
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>

@@ -82,13 +82,13 @@ export default function LoginPage() {
       </section>
 
       {/* Right Section: Form (30% width) */}
-      <section className="w-full md:w-[30%] bg-white flex flex-col justify-center px-8 md:px-12 py-12 relative shadow-[-24px_0_48px_rgba(13,28,46,0.04)] z-20">
+      <section className="w-full flex-1 md:flex-none md:w-[30%] bg-white flex flex-col justify-center px-8 md:px-12 py-12 relative shadow-[-24px_0_48px_rgba(13,28,46,0.04)] z-20">
         {/* Mobile Logo Only */}
         <div className="md:hidden flex justify-center mb-12">
           <img
             alt="Huachipato Logo"
             className="w-32 h-auto"
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuALd99pupk1sqog3lfFwsFomRnP_899txMB1MVQRV3zhSgruSs3VG62B1P1sAeDzSw2pq4M1AE37uZN9zJ3tcEFqdnPM_UPaexfDbTDaHNMcB-Kb-ErvPubC_7TX1ydqbKrDLx4MoSP1J6vM32d1dXEyzhcORhOITTTzpsIEz3syklITB6sKTcIQcyULm51m4FHMnqYsWs_VFxi8af8qcw3hc4CgsdVIGZzSsTWXdZlpUaQUspoxSyY_-U2X1rNLKWtP02FwP_V5sY"
+            src="https://vectorseek.com/wp-content/uploads/2024/01/Huachipato-FC-Logo-Vector.svg-.png"
           />
         </div>
 
@@ -168,7 +168,7 @@ export default function LoginPage() {
             </div>
 
             {/* Actions */}
-            <div className="flex items-center justify-between py-2">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between py-2 gap-4">
               <label className="flex items-center gap-3 cursor-pointer group">
                 <div className="relative flex items-center">
                   <input

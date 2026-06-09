@@ -215,7 +215,7 @@ export default function ClinicalFileSlideOver({ isOpen, onClose, player, onUpdat
       />
       
       {/* Slide-over panel */}
-      <div className={`fixed inset-y-0 right-0 z-50 w-full max-w-md bg-white shadow-2xl transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'} flex flex-col`}>
+      <div className={`fixed inset-y-0 right-0 z-50 w-full md:max-w-lg bg-white shadow-2xl transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'} flex flex-col`}>
         
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
