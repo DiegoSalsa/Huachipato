@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import AcwrBadge, { riskConfig } from "@/components/AcwrBadge";
 import HuachipatoLoader from "@/components/HuachipatoLoader";
+import { generateACSReport, loadLogoBase64 } from "@/lib/report-generator";
 
 type AcwrRisk = "bajo" | "optimo" | "cuidado" | "alto";
 
@@ -80,6 +81,8 @@ export default function DashboardPage() {
   const [activeFilter, setActiveFilter] = useState("all");
   const [selectedWeek, setSelectedWeek] = useState<string>("");
   const [period, setPeriod] = useState<"28" | "21">("28");
+  const [generating, setGenerating] = useState(false);
+  const logoRef = useRef<string>("");
 
   const loadData = useCallback(async (weekParam?: string) => {
     setLoading(true);
@@ -98,6 +101,27 @@ export default function DashboardPage() {
       }
     });
   }, [loadData]);
+
+  // Preload logo for PDF generation
+  useEffect(() => {
+    loadLogoBase64().then((b64) => { logoRef.current = b64; });
+  }, []);
+
+  const handleDownloadPDF = async () => {
+    if (!data || generating) return;
+    setGenerating(true);
+    try {
+      await generateACSReport({
+        players: data.players,
+        week: data.week,
+        year: data.year,
+        period,
+        logoBase64: logoRef.current,
+      });
+    } finally {
+      setGenerating(false);
+    }
+  };
 
   const handleWeekChange = (value: string) => {
     setSelectedWeek(value);
@@ -177,6 +201,16 @@ export default function DashboardPage() {
                 <span className="material-symbols-outlined text-base">upload_file</span>
                 Subir CSV
               </Link>
+              <button
+                onClick={handleDownloadPDF}
+                disabled={generating || !data || players.length === 0}
+                className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-all hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <span className={`material-symbols-outlined text-base ${generating ? 'animate-spin' : ''}`}>
+                  {generating ? 'progress_activity' : 'picture_as_pdf'}
+                </span>
+                {generating ? 'Generando...' : 'Descargar PDF'}
+              </button>
             </div>
           </div>
         </header>
