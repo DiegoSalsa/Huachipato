@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import HuachipatoLoader from "@/components/HuachipatoLoader";
+import RoleGuard from "@/components/RoleGuard";
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -167,6 +168,7 @@ export default function ResumenPage() {
     : "Cargando...";
 
   return (
+      <RoleGuard allowedRoles={["gps", "admin"]}>
       <div className="flex flex-col bg-white min-h-full">
         {/* Header */}
         <header className="border-b border-slate-200 bg-white px-4 py-5 md:px-8">
@@ -569,5 +571,6 @@ export default function ResumenPage() {
           )}
         </div>
       </div>
+      </RoleGuard>
   );
 }

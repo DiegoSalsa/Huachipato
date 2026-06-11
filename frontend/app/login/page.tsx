@@ -38,7 +38,7 @@ export default function LoginPage() {
       }
 
       // Redirigir al dashboard
-      router.push('/jugadores');
+      router.push('/');
     } catch (err) {
       setError('Error de conexión');
       console.error(err);

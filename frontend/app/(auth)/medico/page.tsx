@@ -7,8 +7,12 @@ import {
 } from "lucide-react";
 import ClinicalFileSlideOver, { PlayerWithInjuries } from "@/components/ClinicalFileSlideOver";
 import HuachipatoLoader from "@/components/HuachipatoLoader";
+import RoleGuard from "@/components/RoleGuard";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function MedicoPage() {
+  const { canPerform } = useAuth();
+  const isReadOnly = !canPerform('edit_clinical_file');
   const [players, setPlayers] = useState<PlayerWithInjuries[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -101,6 +105,7 @@ export default function MedicoPage() {
   };
 
   return (
+    <RoleGuard allowedRoles={["medico", "admin"]}>
     <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6 md:space-y-8 overflow-hidden">
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -346,7 +351,9 @@ export default function MedicoPage() {
         onClose={() => setIsClinicalFileOpen(false)} 
         player={selectedPlayer} 
         onUpdate={fetchData}
+        readOnly={isReadOnly}
       />
     </div>
+    </RoleGuard>
   );
 }

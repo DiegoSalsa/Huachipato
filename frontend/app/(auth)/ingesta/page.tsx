@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
+import RoleGuard from "@/components/RoleGuard";
 
 interface UploadResult {
   mode: "daily" | "weekly";
@@ -188,6 +189,7 @@ export default function IngestaPage() {
   const previewRows = uploadResult?.preview?.slice(0, 5) ?? [];
 
   return (
+    <RoleGuard allowedRoles={["gps"]}>
     <div className="flex flex-col bg-white min-h-full">
         <header className="border-b border-slate-200 px-4 py-6 md:px-10">
           <div className="mx-auto max-w-6xl">
@@ -686,5 +688,6 @@ export default function IngestaPage() {
           </div>
         )}
       </div>
+    </RoleGuard>
   );
 }

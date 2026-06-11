@@ -23,9 +23,10 @@ interface ClinicalFileSlideOverProps {
   onClose: () => void;
   player: PlayerWithInjuries | null;
   onUpdate: () => void;
+  readOnly?: boolean;
 }
 
-export default function ClinicalFileSlideOver({ isOpen, onClose, player, onUpdate }: ClinicalFileSlideOverProps) {
+export default function ClinicalFileSlideOver({ isOpen, onClose, player, onUpdate, readOnly = false }: ClinicalFileSlideOverProps) {
   // Active Injury State (if any)
   const activeInjury = player?.injuries.find(i => i.status === "En recuperación" || i.status === "Recaída") || null;
   
@@ -287,6 +288,7 @@ export default function ClinicalFileSlideOver({ isOpen, onClose, player, onUpdat
                       <FileText className="w-4 h-4 text-red-500" />
                       Lesión Activa
                     </h4>
+                    {!readOnly && (
                     <button 
                       onClick={() => isEditing ? handleUpdateInjury() : setIsEditing(true)}
                       disabled={isSaving}
@@ -296,6 +298,7 @@ export default function ClinicalFileSlideOver({ isOpen, onClose, player, onUpdat
                     >
                       {isSaving ? "Guardando..." : isEditing ? <><Check className="w-3 h-3" /> Guardar</> : <><Edit2 className="w-3 h-3" /> Editar</>}
                     </button>
+                    )}
                   </div>
 
                   <div className="bg-white border border-red-100 rounded-xl p-4 shadow-sm space-y-4 relative">
@@ -371,7 +374,7 @@ export default function ClinicalFileSlideOver({ isOpen, onClose, player, onUpdat
                     )}
                     
                     {/* Action to Discharge */}
-                    {!isEditing && (
+                    {!isEditing && !readOnly && (
                       <div className="pt-2 border-t border-gray-50 flex justify-end">
                         <button 
                           onClick={handleDischarge} disabled={isSaving}
@@ -385,7 +388,8 @@ export default function ClinicalFileSlideOver({ isOpen, onClose, player, onUpdat
                 </>
               ) : (
                 <>
-                  {!isRegistering ? (
+                  {!readOnly ? (
+                  !isRegistering ? (
                     <button 
                       onClick={() => setIsRegistering(true)}
                       className="w-full border-2 border-dashed border-gray-300 rounded-xl p-6 flex flex-col items-center justify-center text-gray-500 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-all group"
@@ -437,6 +441,13 @@ export default function ClinicalFileSlideOver({ isOpen, onClose, player, onUpdat
                           </button>
                         </div>
                       </form>
+                    </div>
+                  )
+                  ) : (
+                    <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-6 text-center">
+                      <span className="material-symbols-outlined text-4xl text-emerald-400 mb-2">check_circle</span>
+                      <p className="text-sm font-semibold text-emerald-700">Jugador sano</p>
+                      <p className="text-xs text-emerald-600 mt-1">Sin lesiones activas registradas</p>
                     </div>
                   )}
                 </>

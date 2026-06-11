@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import HuachipatoLoader from "@/components/HuachipatoLoader";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Player {
   id: string;
@@ -33,6 +34,9 @@ const positionOptions = [
 ];
 
 export default function JugadoresPage() {
+  const { canPerform } = useAuth();
+  const canEdit = canPerform('edit_player');
+  const canCreate = canPerform('create_player');
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -91,6 +95,7 @@ export default function JugadoresPage() {
               Plantel — {players.length} jugadores registrados
             </p>
           </div>
+          {canCreate && (
           <button
             onClick={() => setShowModal(true)}
             className="inline-flex items-center gap-2 rounded-lg bg-[#0085CB] px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
@@ -98,6 +103,7 @@ export default function JugadoresPage() {
             <span className="material-symbols-outlined text-base">person_add</span>
             Agregar Jugador
           </button>
+          )}
         </header>
 
         <div className="p-4 md:p-8 overflow-hidden">
@@ -114,6 +120,7 @@ export default function JugadoresPage() {
               <p className="mt-1 text-sm text-slate-400">
                 Agrega jugadores manualmente o sube un CSV.
               </p>
+              {canCreate && (
               <button
                 onClick={() => setShowModal(true)}
                 className="mt-6 inline-flex items-center gap-2 rounded-lg bg-[#0085CB] px-6 py-2.5 text-sm font-bold text-white"
@@ -121,6 +128,7 @@ export default function JugadoresPage() {
                 <span className="material-symbols-outlined text-lg">person_add</span>
                 Agregar Jugador
               </button>
+              )}
             </div>
           ) : (
             <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
