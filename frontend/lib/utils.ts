@@ -1,19 +1,61 @@
 /**
+ * Common corrupted name substrings from bad CSV exports.
+ * Maps the corrupted version (with ?) to the clean, normalized version (no accents).
+ */
+const CORRUPTED_NAMES_MAP: Record<string, string> = {
+  "D?AZ": "DIAZ",
+  "BRICE?O": "BRICENO",
+  "N?ÑEZ": "NUNEZ",
+  "NU?EZ": "NUNEZ",
+  "N?NEZ": "NUNEZ",
+  "PE?A": "PENA",
+  "MU?OZ": "MUNOZ",
+  "IBA?EZ": "IBANEZ",
+  "YA?EZ": "YANEZ",
+  "MART?NEZ": "MARTINEZ",
+  "FERN?NDEZ": "FERNANDEZ",
+  "HERN?NDEZ": "HERNANDEZ",
+  "RODR?GUEZ": "RODRIGUEZ",
+  "L?PEZ": "LOPEZ",
+  "G?MEZ": "GOMEZ",
+  "P?REZ": "PEREZ",
+  "S?NCHEZ": "SANCHEZ",
+  "RAM?REZ": "RAMIREZ",
+  "GARC?A": "GARCIA",
+  "GUTI?RREZ": "GUTIERREZ",
+  "CORT?S": "CORTES",
+  "VALD?S": "VALDES",
+  "M?RQUEZ": "MARQUEZ",
+  "V?SQUEZ": "VASQUEZ",
+  "VEL?SQUEZ": "VELASQUEZ",
+  "?": "", // Fallback to remove standalone ? if it wasn't caught
+  "": "", // Remove generic replacement character
+};
+
+/**
  * Normalize player name for consistent matching across CSVs.
  *
  * Steps:
  *   1. trim()
  *   2. UPPERCASE
- *   3. Remove accents/diacritics (NFD + strip combining chars)
- *   4. Collapse multiple spaces → single space
+ *   3. Fix common corrupted exports (e.g. "D?AZ" -> "DIAZ")
+ *   4. Remove accents/diacritics (NFD + strip combining chars)
+ *   5. Collapse multiple spaces → single space
  *
  * "  Cris  Martínez " → "CRIS MARTINEZ"
  * " E Cañete"         → "E CANETE"
  */
 export function normalizeName(raw: string): string {
-  return raw
-    .trim()
-    .toUpperCase()
+  let upper = raw.trim().toUpperCase();
+  
+  // Replace known corrupted substrings
+  for (const [corrupted, fixed] of Object.entries(CORRUPTED_NAMES_MAP)) {
+    if (upper.includes(corrupted)) {
+      upper = upper.split(corrupted).join(fixed);
+    }
+  }
+
+  return upper
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/\s+/g, " ");
