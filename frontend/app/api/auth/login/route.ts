@@ -18,13 +18,27 @@ export async function POST(request: NextRequest) {
 
     // Buscar usuario
     const user = await prisma.user.findUnique({
-      where: { email },
+      where: { email: String(email).trim().toLowerCase() },
     });
 
     if (!user) {
       return NextResponse.json(
         { message: 'Credenciales inválidas' },
         { status: 401 }
+      );
+    }
+
+    if (user.status === 'PENDING') {
+      return NextResponse.json(
+        { message: 'Debes activar tu cuenta desde el correo de invitación' },
+        { status: 403 }
+      );
+    }
+
+    if (user.status === 'BLOCKED') {
+      return NextResponse.json(
+        { message: 'Tu cuenta está bloqueada. Contacta al administrador' },
+        { status: 403 }
       );
     }
 

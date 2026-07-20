@@ -28,10 +28,10 @@ export async function getRequestContext(
 
   const user = await prisma.user.findUnique({
     where: { id: payload.userId },
-    select: { id: true, email: true, name: true, role: true, squad: true },
+    select: { id: true, email: true, name: true, role: true, squad: true, status: true },
   });
 
-  if (!user || !["medico", "gps", "admin"].includes(user.role)) return null;
+  if (!user || user.status !== "ACTIVE" || !["medico", "gps", "admin"].includes(user.role)) return null;
   const role = user.role as AppRole;
   if (allowedRoles && !allowedRoles.includes(role)) return null;
 
@@ -41,7 +41,13 @@ export async function getRequestContext(
     : (user.squad as Squad);
 
   return {
-    user: { ...user, role, squad: user.squad as Squad },
+    user: {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role,
+      squad: user.squad as Squad,
+    },
     squad,
   };
 }

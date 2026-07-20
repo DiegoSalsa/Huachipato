@@ -54,6 +54,8 @@ async function main() {
       name: "Administrador",
       role: "admin",
       squad: "PROFESIONAL",
+      status: "ACTIVE",
+      activatedAt: new Date(),
     },
   });
 

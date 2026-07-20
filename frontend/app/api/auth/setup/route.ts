@@ -27,6 +27,8 @@ export async function POST() {
         name: 'Administrador',
         role: 'admin',
         squad: 'PROFESIONAL',
+        status: 'ACTIVE',
+        activatedAt: new Date(),
       },
       select: {
         id: true,

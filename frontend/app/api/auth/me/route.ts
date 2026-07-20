@@ -34,10 +34,11 @@ export async function GET(request: NextRequest) {
         name: true,
         role: true,
         squad: true,
+        status: true,
       },
     });
 
-    if (!user) {
+    if (!user || user.status !== 'ACTIVE') {
       return NextResponse.json(
         { message: 'Usuario no encontrado' },
         { status: 404 }
@@ -46,7 +47,13 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(
       {
-        user,
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+          squad: user.squad,
+        },
         activeSquad:
           user.role === 'admin' && isSquad(request.cookies.get('active_squad')?.value)
             ? request.cookies.get('active_squad')!.value

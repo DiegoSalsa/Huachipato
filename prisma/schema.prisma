@@ -9,16 +9,27 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String
-  name      String?
-  role      String   @default("user")
-  squad     Squad    @default(PROFESIONAL)
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id               String     @id @default(cuid())
+  email            String     @unique
+  password         String
+  name             String?
+  role             String     @default("user")
+  squad            Squad      @default(PROFESIONAL)
+  status           UserStatus @default(ACTIVE)
+  inviteTokenHash  String?    @unique @map("invite_token_hash")
+  inviteExpiresAt  DateTime?  @map("invite_expires_at")
+  lastInviteSentAt DateTime?  @map("last_invite_sent_at")
+  activatedAt      DateTime?  @map("activated_at")
+  createdAt        DateTime   @default(now()) @map("created_at")
+  updatedAt        DateTime   @updatedAt @map("updated_at")
 
   @@map("users")
+}
+
+enum UserStatus {
+  PENDING
+  ACTIVE
+  BLOCKED
 }
 
 enum Squad {
