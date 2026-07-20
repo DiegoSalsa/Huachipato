@@ -193,26 +193,26 @@ export default function IngestaPage() {
     <div className="flex flex-col bg-white min-h-full">
         <header className="border-b border-slate-200 px-4 py-6 md:px-10">
           <div className="mx-auto max-w-6xl">
-            <h1 className="text-3xl font-black tracking-tight text-slate-900">
+            <h1 className="text-2xl font-black tracking-tight text-slate-900 md:text-3xl">
               Ingesta de Datos GPS
             </h1>
-            <p className="mt-1 text-sm font-medium text-slate-500">
+            <p className="mt-1 text-xs font-medium text-slate-500 md:text-sm">
               Sube archivos CSV/Excel para alimentar el motor de cálculo ACS
             </p>
           </div>
         </header>
 
         <div className="p-4 md:p-10">
-          <div className="mx-auto max-w-6xl space-y-8">
+          <div className="mx-auto max-w-6xl space-y-6 md:space-y-8">
             {/* Botones de carga */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
               {/* Tarjeta de carga diaria */}
               <button
                 onClick={() => openModal("daily")}
-                className="group relative overflow-hidden rounded-2xl border-2 border-[#0085CB]/20 bg-gradient-to-br from-[#0085CB]/5 to-white p-8 text-left transition-all hover:border-[#0085CB]/50 hover:shadow-lg hover:shadow-[#0085CB]/10"
+                className="group relative overflow-hidden rounded-2xl border-2 border-[#0085CB]/20 bg-gradient-to-br from-[#0085CB]/5 to-white p-5 text-left transition-all hover:border-[#0085CB]/50 hover:shadow-lg hover:shadow-[#0085CB]/10 md:p-8"
               >
                 <div className="flex items-start gap-4">
-                  <div className="flex size-14 shrink-0 items-center justify-center rounded-xl bg-[#0085CB]/10">
+                  <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-[#0085CB]/10 md:size-14">
                     <span className="material-symbols-outlined text-3xl text-[#0085CB]">
                       today
                     </span>
@@ -238,10 +238,10 @@ export default function IngestaPage() {
               {/* Tarjeta de carga semanal */}
               <button
                 onClick={() => openModal("weekly")}
-                className="group relative overflow-hidden rounded-2xl border-2 border-emerald-200/60 bg-gradient-to-br from-emerald-50/50 to-white p-8 text-left transition-all hover:border-emerald-300 hover:shadow-lg hover:shadow-emerald-100"
+                className="group relative overflow-hidden rounded-2xl border-2 border-emerald-200/60 bg-gradient-to-br from-emerald-50/50 to-white p-5 text-left transition-all hover:border-emerald-300 hover:shadow-lg hover:shadow-emerald-100 md:p-8"
               >
                 <div className="flex items-start gap-4">
-                  <div className="flex size-14 shrink-0 items-center justify-center rounded-xl bg-emerald-100">
+                  <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-emerald-100 md:size-14">
                     <span className="material-symbols-outlined text-3xl text-emerald-600">
                       date_range
                     </span>
@@ -267,7 +267,7 @@ export default function IngestaPage() {
 
             {/* Informacion de ultima subida */}
             {lastUpload && (
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 flex items-center gap-4">
+              <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 sm:flex-row sm:items-center sm:gap-4">
                 <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#0085CB]/10">
                   <span className="material-symbols-outlined text-xl text-[#0085CB]">
                     history
@@ -281,7 +281,7 @@ export default function IngestaPage() {
                     {lastUpload.fileName || "Informe Diario"}
                   </p>
                 </div>
-                <div className="text-right shrink-0">
+                <div className="w-full border-t border-slate-200 pt-3 text-left sm:w-auto sm:shrink-0 sm:border-0 sm:pt-0 sm:text-right">
                   <p className="text-sm font-bold text-slate-700">
                     {lastUpload.mode === "daily"
                       ? new Date(lastUpload.date + "T12:00:00").toLocaleDateString("es-CL", {
@@ -307,7 +307,7 @@ export default function IngestaPage() {
 
             {/* Resultado exitoso */}
             {uploadResult && (
-              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-6 animate-in fade-in">
+              <div className="animate-in fade-in rounded-xl border border-emerald-200 bg-emerald-50 p-4 md:p-6">
                 <div className="flex items-center gap-3 mb-3">
                   <span className="material-symbols-outlined text-emerald-600 text-2xl">
                     check_circle
@@ -319,7 +319,7 @@ export default function IngestaPage() {
                       : "Stats Semanal"}
                   </h3>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
+                <div className="grid grid-cols-2 gap-4 text-sm md:grid-cols-4">
                   <div>
                     <p className="text-emerald-600 font-medium">
                       Registros importados
@@ -371,7 +371,7 @@ export default function IngestaPage() {
                     Primeras 5 filas del archivo procesado
                   </p>
                 </div>
-                <div className="overflow-x-auto">
+                <div className="hidden overflow-x-auto md:block">
                   <table className="w-full text-left text-sm">
                     <thead className="border-b border-slate-100 bg-slate-50 text-xs font-bold uppercase tracking-wide text-slate-600">
                       <tr>
@@ -416,6 +416,28 @@ export default function IngestaPage() {
                       ))}
                     </tbody>
                   </table>
+                </div>
+                <div className="divide-y divide-slate-100 md:hidden">
+                  {previewRows.map((row, index) => (
+                    <article key={index} className="p-4">
+                      <p className="mb-3 truncate text-sm font-bold text-slate-900">{getMappedValor(row, "name")}</p>
+                      <div className="grid grid-cols-3 gap-2 text-center">
+                        {[
+                          ["Distancia", "totalDistance"],
+                          ["HSR", "hsr"],
+                          ["Sprint", "sprintDistance"],
+                          ["Sprints", "sprints"],
+                          ["Acc", "accelerations"],
+                          ["Dec", "decelerations"],
+                        ].map(([label, key]) => (
+                          <div key={key} className="rounded-lg bg-slate-50 p-2">
+                            <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">{label}</p>
+                            <p className="mt-0.5 truncate text-xs font-black text-slate-700">{getMappedValor(row, key)}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </article>
+                  ))}
                 </div>
               </div>
             )}
@@ -482,8 +504,8 @@ export default function IngestaPage() {
 
         {/* Modal */}
         {modalMode && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-            <div className="mx-4 w-full max-w-xl rounded-2xl bg-white p-6 shadow-2xl">
+          <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/40 backdrop-blur-sm sm:items-center sm:p-4">
+            <div className="max-h-[calc(100dvh-1rem)] w-full max-w-xl overflow-y-auto rounded-t-2xl bg-white p-5 shadow-2xl sm:rounded-2xl sm:p-6">
               {/* Encabezado del modal */}
               <div className="flex items-center justify-between mb-5">
                 <div className="flex items-center gap-3">

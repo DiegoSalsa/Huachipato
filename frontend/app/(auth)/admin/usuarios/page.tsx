@@ -213,7 +213,7 @@ export default function AdminUsuariosPage() {
               <h1 className="text-2xl font-black tracking-tight text-slate-900 md:text-3xl">Administrar usuarios</h1>
               <p className="mt-1 text-sm font-medium text-slate-500">Invita y administra el acceso del personal por serie.</p>
             </div>
-            <button onClick={openCreate} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#0085CB] px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-sky-600/15">
+            <button onClick={openCreate} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#0085CB] px-5 py-3 text-sm font-bold text-white shadow-lg shadow-sky-600/15 md:w-auto md:py-2.5">
               <span className="material-symbols-outlined text-base">person_add</span>
               Invitar usuario
             </button>
@@ -252,7 +252,8 @@ export default function AdminUsuariosPage() {
             ) : filteredUsers.length === 0 ? (
               <p className="p-8 text-center text-sm text-slate-500">No hay usuarios para mostrar.</p>
             ) : (
-              <div className="overflow-x-auto">
+              <>
+              <div className="hidden overflow-x-auto md:block">
                 <table className="w-full min-w-[980px] text-left text-sm">
                   <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                     <tr>
@@ -292,13 +293,44 @@ export default function AdminUsuariosPage() {
                   </tbody>
                 </table>
               </div>
+              <div className="divide-y divide-slate-100 md:hidden">
+                {filteredUsers.map((user) => {
+                  const isAdmin = user.role === "admin";
+                  const busy = actionId === user.id;
+                  return (
+                    <article key={user.id} className="p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate font-bold text-slate-900">{user.name || "Sin nombre"}</p>
+                          <p className="truncate text-xs text-slate-500">{user.email}</p>
+                        </div>
+                        <StatusBadge status={user.status} />
+                      </div>
+                      <div className="mt-3 grid grid-cols-2 gap-2 rounded-xl bg-slate-50 p-3 text-xs">
+                        <div><p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Rol</p><p className="mt-0.5 font-semibold text-slate-700">{roleLabels[user.role]}</p></div>
+                        <div><p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Serie</p><p className="mt-0.5 font-semibold text-slate-700">{isAdmin ? "Todas" : SQUAD_LABELS[user.squad]}</p></div>
+                        {user.lastInviteSentAt && <div className="col-span-2"><p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Última invitación</p><p className="mt-0.5 font-semibold text-slate-700">{formatDate(user.lastInviteSentAt)}</p></div>}
+                      </div>
+                      {!isAdmin && (
+                        <div className="mt-3 grid grid-cols-2 gap-2">
+                          <MobileAction icon="edit" label="Editar" disabled={busy} onClick={() => openEdit(user)} />
+                          {user.status === "PENDING" && <MobileAction icon="forward_to_inbox" label="Reenviar" disabled={busy} onClick={() => void handleResend(user)} />}
+                          {user.status !== "PENDING" && <MobileAction icon={user.status === "BLOCKED" ? "lock_open" : "block"} label={user.status === "BLOCKED" ? "Habilitar" : "Bloquear"} disabled={busy} onClick={() => void handleToggleStatus(user)} />}
+                          <MobileAction icon="delete" label="Eliminar" danger disabled={busy} onClick={() => void handleDelete(user)} />
+                        </div>
+                      )}
+                    </article>
+                  );
+                })}
+              </div>
+              </>
             )}
           </div>
         </div>
 
         {(showCreate || editing) && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
-            <form onSubmit={editing ? handleEdit : handleCreate} className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
+          <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/40 p-0 backdrop-blur-sm sm:items-center sm:p-4">
+            <form onSubmit={editing ? handleEdit : handleCreate} className="max-h-[calc(100dvh-1rem)] w-full max-w-lg overflow-y-auto rounded-t-2xl bg-white p-5 shadow-2xl sm:max-h-[calc(100dvh-2rem)] sm:rounded-2xl sm:p-6">
               <div className="mb-5 flex items-start justify-between">
                 <div>
                   <h3 className="text-lg font-bold text-slate-900">{editing ? "Editar usuario" : "Invitar usuario"}</h3>
@@ -360,4 +392,8 @@ function Alert({ type, children }: { type: "error" | "success"; children: React.
 
 function ActionButton({ icon, label, onClick, disabled, danger = false }: { icon: string; label: string; onClick: () => void; disabled: boolean; danger?: boolean }) {
   return <button type="button" title={label} aria-label={label} onClick={onClick} disabled={disabled} className={`inline-flex size-9 items-center justify-center rounded-lg border transition-colors disabled:opacity-40 ${danger ? "border-red-200 text-red-600 hover:bg-red-50" : "border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-800"}`}><span className="material-symbols-outlined text-lg">{icon}</span></button>;
+}
+
+function MobileAction({ icon, label, onClick, disabled, danger = false }: { icon: string; label: string; onClick: () => void; disabled: boolean; danger?: boolean }) {
+  return <button type="button" onClick={onClick} disabled={disabled} className={`inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-bold disabled:opacity-40 ${danger ? "border-red-200 bg-red-50 text-red-700" : "border-slate-200 bg-white text-slate-700"}`}><span className="material-symbols-outlined text-lg">{icon}</span>{label}</button>;
 }

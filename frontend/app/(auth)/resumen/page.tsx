@@ -174,7 +174,7 @@ export default function ResumenPage() {
         <header className="border-b border-slate-200 bg-white px-4 py-5 md:px-8">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
-              <h1 className="text-3xl font-black tracking-tight text-slate-900">
+              <h1 className="text-2xl font-black tracking-tight text-slate-900 md:text-3xl">
                 Resumen del Día
               </h1>
               <p className="mt-1 text-sm font-medium text-slate-500 capitalize">
@@ -186,13 +186,13 @@ export default function ResumenPage() {
                 )}
               </p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex w-full items-center gap-3 md:w-auto">
               {/* Selector de fecha */}
               <input
                 type="date"
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
-                className="appearance-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-800 outline-none focus:border-[#0085CB] focus:ring-2 focus:ring-[#0085CB]/20"
+                className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-800 outline-none focus:border-[#0085CB] focus:ring-2 focus:ring-[#0085CB]/20 md:w-auto"
               />
             </div>
           </div>
@@ -200,10 +200,10 @@ export default function ResumenPage() {
 
         <div className="space-y-6 p-4 md:p-8 overflow-hidden">
           {/* Selector de vista */}
-          <div className="flex gap-2 p-1 bg-slate-100 rounded-xl w-fit">
+          <div className="flex w-full gap-1 rounded-xl bg-slate-100 p-1 sm:w-fit sm:gap-2">
             <button
               onClick={() => setActiveTab("today")}
-              className={`flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-bold transition-all ${
+              className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-bold transition-all sm:flex-none sm:px-5 ${
                 activeTab === "today"
                   ? "bg-white text-[#0085CB] shadow-sm"
                   : "text-slate-500 hover:text-slate-700"
@@ -221,7 +221,7 @@ export default function ResumenPage() {
             </button>
             <button
               onClick={() => setActiveTab("week")}
-              className={`flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-bold transition-all ${
+              className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-bold transition-all sm:flex-none sm:px-5 ${
                 activeTab === "week"
                   ? "bg-white text-emerald-600 shadow-sm"
                   : "text-slate-500 hover:text-slate-700"

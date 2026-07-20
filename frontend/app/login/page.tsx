@@ -48,7 +48,7 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="min-h-screen flex flex-col md:flex-row overflow-hidden">
+    <main className="flex min-h-dvh flex-col overflow-x-hidden md:flex-row">
       {/* Seccion visual de marca */}
       <section className="hidden md:flex md:w-[70%] bg-[#006195] relative items-center justify-center overflow-hidden">
         {/* Textura de fondo */}
@@ -82,18 +82,18 @@ export default function LoginPage() {
       </section>
 
       {/* Seccion del formulario */}
-      <section className="w-full flex-1 md:flex-none md:w-[30%] bg-white flex flex-col justify-center px-8 md:px-12 py-12 relative shadow-[-24px_0_48px_rgba(13,28,46,0.04)] z-20">
+      <section className="relative z-20 flex w-full flex-1 flex-col justify-center bg-white px-5 py-8 shadow-[-24px_0_48px_rgba(13,28,46,0.04)] sm:px-8 md:w-[30%] md:flex-none md:px-12 md:py-12">
         {/* Logo para vista movil */}
-        <div className="md:hidden flex justify-center mb-12">
+        <div className="mb-7 flex justify-center md:hidden">
           <img
             alt="Huachipato Logo"
-            className="w-32 h-auto"
+            className="h-auto w-24 sm:w-28"
             src="https://vectorseek.com/wp-content/uploads/2024/01/Huachipato-FC-Logo-Vector.svg-.png"
           />
         </div>
 
         <div className="max-w-sm w-full mx-auto">
-          <header className="mb-10">
+          <header className="mb-8">
             <h2 className="font-headline font-bold text-3xl text-on-surface tracking-tight mb-2">
               Iniciar Sesión
             </h2>
@@ -102,7 +102,7 @@ export default function LoginPage() {
             </p>
           </header>
 
-          <form className="space-y-6" onSubmit={handleSubmit}>
+          <form className="space-y-5" onSubmit={handleSubmit}>
             {/* Mensaje de error */}
             {error && (
               <div className="p-4 bg-error-container border border-error rounded-lg text-error text-sm">
@@ -202,7 +202,7 @@ export default function LoginPage() {
           </form>
 
           {/* Pie de pagina y soporte */}
-          <footer className="mt-16 pt-8 border-t border-surface-container-low">
+          <footer className="mt-10 border-t border-surface-container-low pt-6 md:mt-16 md:pt-8">
             <p className="text-xs font-medium text-outline text-center">
               Acceso restringido para personal técnico y directivo de <br />
               <span className="text-on-surface-variant font-bold uppercase tracking-tight">

@@ -14,6 +14,21 @@ html, body {
   width: 100%;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+}
+
+button, a, select, input, textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (max-width: 767px) {
+  input, select, textarea {
+    font-size: 16px;
+  }
+}
+
 body {
   font-family: var(--font-display);
   background: #ffffff;

@@ -110,40 +110,40 @@ export default function MedicoPage() {
       {/* Encabezado */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Módulo Médico</h1>
-          <p className="text-gray-500 mt-1">Gestión integral de lesiones y fichas clínicas por jugador</p>
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900 md:text-3xl">Módulo Médico</h1>
+          <p className="mt-1 text-sm text-gray-500 md:text-base">Gestión integral de lesiones y fichas clínicas por jugador</p>
         </div>
       </div>
 
       {/* Panel de indicadores */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-        <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm flex items-center gap-4">
-          <div className="p-4 bg-orange-50 rounded-xl text-orange-600">
-            <Activity className="w-8 h-8" />
+        <div className="flex items-center gap-4 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm md:p-6">
+          <div className="rounded-xl bg-orange-50 p-3 text-orange-600 md:p-4">
+            <Activity className="h-7 w-7 md:h-8 md:w-8" />
           </div>
           <div>
             <p className="text-sm font-medium text-gray-500">Plantel Lesionado</p>
-            <p className="text-3xl font-bold text-gray-900">{kpis.currentlyInjured} <span className="text-base text-gray-400 font-medium">/ {players.length}</span></p>
+            <p className="text-2xl font-bold text-gray-900 md:text-3xl">{kpis.currentlyInjured} <span className="text-base text-gray-400 font-medium">/ {players.length}</span></p>
           </div>
         </div>
         
-        <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm flex items-center gap-4">
-          <div className="p-4 bg-emerald-50 rounded-xl text-emerald-600">
-            <CheckCircle className="w-8 h-8" />
+        <div className="flex items-center gap-4 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm md:p-6">
+          <div className="rounded-xl bg-emerald-50 p-3 text-emerald-600 md:p-4">
+            <CheckCircle className="h-7 w-7 md:h-8 md:w-8" />
           </div>
           <div>
             <p className="text-sm font-medium text-gray-500">Altas Médicas (Histórico)</p>
-            <p className="text-3xl font-bold text-gray-900">{kpis.totalAltas}</p>
+            <p className="text-2xl font-bold text-gray-900 md:text-3xl">{kpis.totalAltas}</p>
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm flex items-center gap-4">
-          <div className="p-4 bg-blue-50 rounded-xl text-blue-600">
-            <Clock className="w-8 h-8" />
+        <div className="flex items-center gap-4 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm md:p-6">
+          <div className="rounded-xl bg-blue-50 p-3 text-blue-600 md:p-4">
+            <Clock className="h-7 w-7 md:h-8 md:w-8" />
           </div>
           <div>
             <p className="text-sm font-medium text-gray-500">Tiempo Promedio Baja</p>
-            <p className="text-3xl font-bold text-gray-900">{kpis.avgDays} <span className="text-base font-medium text-gray-500">días</span></p>
+            <p className="text-2xl font-bold text-gray-900 md:text-3xl">{kpis.avgDays} <span className="text-base font-medium text-gray-500">días</span></p>
           </div>
         </div>
       </div>
@@ -152,7 +152,7 @@ export default function MedicoPage() {
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         
         {/* Barra de herramientas */}
-        <div className="p-5 border-b border-gray-100 bg-gray-50/50 flex flex-col sm:flex-row gap-4 items-center justify-between">
+        <div className="flex flex-col items-center justify-between gap-3 border-b border-gray-100 bg-gray-50/50 p-4 sm:flex-row md:gap-4 md:p-5">
           <div className="relative w-full sm:w-96">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input 

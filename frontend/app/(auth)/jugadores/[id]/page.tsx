@@ -1,10 +1,10 @@
 ﻿"use client";
 
-import { useEffect, useState, useCallback, useMemo, use, useRef } from "react";
-import Image from "next/image";
+import { useEffect, useState, use, useRef } from "react";
 import Link from "next/link";
-import AcwrBadge, { riskConfig } from "@/components/AcwrBadge";
+import AcwrBadge from "@/components/AcwrBadge";
 import HuachipatoLoader from "@/components/HuachipatoLoader";
+import type { AcwrRisk } from "@/lib/services/acwr";
 
 interface HistoryPoint {
   year: number;
@@ -16,7 +16,7 @@ interface HistoryPoint {
   chronicHighVelocity28: number;
   acuteMechImpacts: number;
   chronicMechImpacts28: number;
-  risk: string;
+  risk: AcwrRisk;
 }
 
 interface PlayerProfile {
@@ -287,7 +287,7 @@ export default function JugadorPerfilPage({ params }: { params: Promise<{ id: st
                       </span>
                     </div>
                     {latest && (
-                      <AcwrBadge risk={latest.risk as any} />
+                      <AcwrBadge risk={latest.risk} />
                     )}
                   </div>
                 </div>
@@ -346,7 +346,7 @@ export default function JugadorPerfilPage({ params }: { params: Promise<{ id: st
                   <p className="py-20 text-center text-sm text-slate-500">No hay datos ACS disponibles.</p>
                 )}
               </div>
-              <div className="mt-2 flex justify-center gap-6 text-xs font-medium text-slate-600">
+              <div className="mt-2 flex flex-wrap justify-center gap-3 text-[11px] font-medium text-slate-600 md:gap-6 md:text-xs">
                 <span className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-[#0085CB]" /> Aguda</span>
                 <span className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-slate-500" /> Crónica (28d)</span>
               </div>
@@ -362,7 +362,7 @@ export default function JugadorPerfilPage({ params }: { params: Promise<{ id: st
                   <p className="py-20 text-center text-sm text-slate-500">No hay datos de intensidad disponibles.</p>
                 )}
               </div>
-              <div className="mt-2 flex justify-center gap-6 text-xs font-medium text-slate-600">
+              <div className="mt-2 flex flex-wrap justify-center gap-3 text-[11px] font-medium text-slate-600 md:gap-6 md:text-xs">
                 <span className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-[#0085CB]" /> Alta Velocidad (m)</span>
                 <span className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-slate-700" /> Impactos Mecánicos (n)</span>
               </div>

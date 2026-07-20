@@ -26,6 +26,12 @@ interface ClinicalFileSlideOverProps {
   readOnly?: boolean;
 }
 
+interface AcwrPlayerSummary {
+  playerId: string;
+  ratioDistance28: number | null;
+  overallRisk: string;
+}
+
 export default function ClinicalFileSlideOver({ isOpen, onClose, player, onUpdate, readOnly = false }: ClinicalFileSlideOverProps) {
   // Estado de lesion activa
   const activeInjury = player?.injuries.find(i => i.status === "En recuperación" || i.status === "Recaída") || null;
@@ -73,8 +79,8 @@ export default function ClinicalFileSlideOver({ isOpen, onClose, player, onUpdat
     try {
       const res = await fetch("/api/acwr");
       if (res.ok) {
-        const data = await res.json();
-        const playerAcwr = data.players?.find((p: any) => p.playerId === playerId);
+        const data: { players?: AcwrPlayerSummary[] } = await res.json();
+        const playerAcwr = data.players?.find((candidate) => candidate.playerId === playerId);
         if (playerAcwr) {
           const ratio = playerAcwr.ratioDistance28;
           setAcwrRatio(ratio);
@@ -211,15 +217,15 @@ export default function ClinicalFileSlideOver({ isOpen, onClose, player, onUpdat
     <>
       {/* Fondo del panel */}
       <div 
-        className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40 transition-opacity"
+        className="fixed inset-0 z-[60] bg-black/30 backdrop-blur-sm transition-opacity"
         onClick={onClose}
       />
       
       {/* Panel lateral */}
-      <div className={`fixed inset-y-0 right-0 z-50 w-full md:max-w-lg bg-white shadow-2xl transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'} flex flex-col`}>
+      <div className={`fixed inset-y-0 right-0 z-[70] flex h-dvh w-full flex-col bg-white shadow-2xl transform transition-transform duration-300 ease-in-out md:max-w-lg ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
         
         {/* Encabezado */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+        <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3 sm:px-6 sm:py-4">
           <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
             <HeartPulse className="w-5 h-5 text-red-500" />
             Ficha Clínica
@@ -235,7 +241,7 @@ export default function ClinicalFileSlideOver({ isOpen, onClose, player, onUpdat
         {/* Contenido */}
         <div className="flex-1 overflow-y-auto">
           {/* Encabezado del jugador */}
-          <div className="p-6 bg-gradient-to-b from-gray-50 to-white border-b border-gray-100">
+          <div className="border-b border-gray-100 bg-gradient-to-b from-gray-50 to-white p-4 sm:p-6">
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 shadow-inner">
                 <User className="w-8 h-8" />
@@ -252,7 +258,7 @@ export default function ClinicalFileSlideOver({ isOpen, onClose, player, onUpdat
             </div>
           </div>
 
-          <div className="p-6 space-y-8">
+          <div className="space-y-6 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:space-y-8 sm:p-6">
             
             {/* Contexto ACS */}
             <section>

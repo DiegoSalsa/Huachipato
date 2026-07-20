@@ -156,22 +156,22 @@ export default function MonitorPage() {
         <header className="border-b border-slate-200 bg-white px-4 py-5 md:px-8">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
-              <h1 className="text-3xl font-black tracking-tight text-slate-900">
+              <h1 className="text-2xl font-black tracking-tight text-slate-900 md:text-3xl">
                 Monitor ACS
               </h1>
-              <p className="mt-1 text-sm font-medium text-slate-500">
+              <p className="mt-1 text-xs font-medium text-slate-500 md:text-sm">
                 Ratio Carga Aguda:Crónica del plantel ·{" "}
                 {data ? `Semana ${data.week}, ${data.year}` : "Cargando..."}
               </p>
             </div>
-            <div className="flex flex-wrap items-center gap-3 w-full md:w-auto mt-2 md:mt-0">
+            <div className="grid w-full grid-cols-2 gap-2 md:mt-0 md:flex md:w-auto md:flex-wrap md:items-center md:gap-3">
               {/* Selector de semana */}
               {data && data.availableWeeks.length > 0 && (
-                <div className="relative">
+                <div className="relative min-w-0">
                   <select
                     value={selectedWeek}
                     onChange={(e) => handleWeekChange(e.target.value)}
-                    className="appearance-none rounded-xl border border-slate-200 bg-slate-50 pl-4 pr-9 py-2 text-sm font-semibold text-slate-800 outline-none focus:border-[#0085CB] focus:ring-2 focus:ring-[#0085CB]/20"
+                    className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 py-2 pl-3 pr-8 text-sm font-semibold text-slate-800 outline-none focus:border-[#0085CB] focus:ring-2 focus:ring-[#0085CB]/20 md:w-auto md:pl-4 md:pr-9"
                   >
                     {data.availableWeeks.map((w) => (
                       <option key={`${w.year}-${w.weekNumber}`} value={`${w.year}-${w.weekNumber}`}>
@@ -185,11 +185,11 @@ export default function MonitorPage() {
                 </div>
               )}
               {/* Selector de periodo */}
-              <div className="relative">
+              <div className="relative min-w-0">
                 <select
                   value={period}
                   onChange={(e) => setPeriod(e.target.value as "28" | "21")}
-                  className="appearance-none rounded-xl border border-slate-200 bg-slate-50 pl-4 pr-9 py-2 text-sm font-semibold text-slate-800 outline-none focus:border-[#0085CB] focus:ring-2 focus:ring-[#0085CB]/20"
+                  className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 py-2 pl-3 pr-8 text-sm font-semibold text-slate-800 outline-none focus:border-[#0085CB] focus:ring-2 focus:ring-[#0085CB]/20 md:w-auto md:pl-4 md:pr-9"
                 >
                   <option value="28">28 Días (4 Sem)</option>
                   <option value="21">21 Días (3 Sem)</option>
@@ -201,7 +201,7 @@ export default function MonitorPage() {
               {canPerform('upload_csv') && (
               <Link
                 href="/ingesta"
-                className="inline-flex items-center gap-2 rounded-lg bg-[#0085CB] px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#0085CB] px-3 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 md:px-4"
               >
                 <span className="material-symbols-outlined text-base">upload_file</span>
                 Subir CSV
@@ -210,7 +210,7 @@ export default function MonitorPage() {
               <button
                 onClick={handleDownloadPDF}
                 disabled={generating || !data || players.length === 0}
-                className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-all hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition-all hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 md:px-4"
               >
                 <span className={`material-symbols-outlined text-base ${generating ? 'animate-spin' : ''}`}>
                   {generating ? 'progress_activity' : 'picture_as_pdf'}
@@ -228,46 +228,46 @@ export default function MonitorPage() {
               <p className="text-xs font-bold uppercase tracking-widest text-slate-400">
                 Jugadores
               </p>
-              <p className="mt-1 text-3xl font-black text-slate-900">{counts.all}</p>
+              <p className="mt-1 text-2xl font-black text-slate-900 md:text-3xl">{counts.all}</p>
             </div>
             <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4">
               <p className="text-xs font-bold uppercase tracking-widest text-emerald-700">
                 Óptimo
               </p>
-              <p className="mt-1 text-3xl font-black text-emerald-700">{counts.optimo}</p>
+              <p className="mt-1 text-2xl font-black text-emerald-700 md:text-3xl">{counts.optimo}</p>
             </div>
             <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4">
               <p className="text-xs font-bold uppercase tracking-widest text-amber-700">
                 Cuidado
               </p>
-              <p className="mt-1 text-3xl font-black text-amber-700">{counts.cuidado}</p>
+              <p className="mt-1 text-2xl font-black text-amber-700 md:text-3xl">{counts.cuidado}</p>
             </div>
             <div className="rounded-2xl border border-rose-200 bg-rose-50/70 p-4">
               <p className="text-xs font-bold uppercase tracking-widest text-rose-700">
                 Alto Riesgo
               </p>
-              <p className="mt-1 text-3xl font-black text-rose-700">{counts.alto}</p>
+              <p className="mt-1 text-2xl font-black text-rose-700 md:text-3xl">{counts.alto}</p>
             </div>
             <div className="rounded-2xl border border-sky-200 bg-sky-50/70 p-4">
               <p className="text-xs font-bold uppercase tracking-widest text-sky-700">
                 Bajo
               </p>
-              <p className="mt-1 text-3xl font-black text-sky-700">{counts.bajo}</p>
+              <p className="mt-1 text-2xl font-black text-sky-700 md:text-3xl">{counts.bajo}</p>
             </div>
           </section>
 
           {/* Botones de filtro */}
-          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:flex md:flex-wrap md:gap-3">
             {filterButtons.map((f) => (
               <button
                 key={f.key}
                 onClick={() => setActiveFilter(f.key)}
-                className={`flex min-w-max items-center gap-2 rounded-xl border px-4 py-2 transition-all ${f.classes} ${
+                className={`flex min-w-0 items-center justify-center gap-1.5 rounded-xl border px-2.5 py-2 transition-all md:min-w-max md:gap-2 md:px-4 ${f.classes} ${
                   activeFilter === f.key ? "ring-2 ring-[#0085CB]/30" : ""
                 }`}
               >
                 <span className="material-symbols-outlined text-[20px]">{f.icon}</span>
-                <span className="text-sm font-bold">
+                <span className="text-xs font-bold sm:text-sm">
                   {f.label} ({counts[f.key as keyof typeof counts]})
                 </span>
               </button>
