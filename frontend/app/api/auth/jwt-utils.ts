@@ -9,8 +9,8 @@ export interface TokenPayload {
   squad: string;
 }
 
-export function generateToken(payload: TokenPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '24h' });
+export function generateToken(payload: TokenPayload, rememberMe = false): string {
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: rememberMe ? '30d' : '24h' });
 }
 
 export function verifyToken(token: string): TokenPayload | null {

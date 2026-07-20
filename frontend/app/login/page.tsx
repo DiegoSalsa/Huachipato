@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -21,7 +22,7 @@ export default function LoginPage() {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, rememberMe }),
       });
 
       const data = await response.json();
@@ -31,11 +32,10 @@ export default function LoginPage() {
         return;
       }
 
-      // Guardar token en cookie
-      document.cookie = `auth_token=${data.token}; path=/; max-age=86400; SameSite=Lax`;
-      if (rememberMe) {
-        document.cookie = 'rememberMe=true; path=/; max-age=2592000; SameSite=Lax';
-      }
+      // Una sesion recordada dura 30 dias; de lo contrario termina al cerrar el navegador.
+      const maxAge = rememberMe ? '; max-age=2592000' : '';
+      const secure = window.location.protocol === 'https:' ? '; Secure' : '';
+      document.cookie = `auth_token=${data.token}; path=/${maxAge}; SameSite=Lax${secure}`;
 
       // Redirigir al dashboard
       router.push('/');
@@ -182,12 +182,12 @@ export default function LoginPage() {
                   Recordarme
                 </span>
               </label>
-              <a
+              <Link
                 className="text-sm font-bold text-[#006195] hover:text-primary-container transition-colors"
-                href="#"
+                href="/recuperar-contrasena"
               >
                 ¿Olvidaste tu contraseña?
-              </a>
+              </Link>
             </div>
 
             {/* Boton de ingreso */}

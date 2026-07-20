@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, password } = await request.json();
+    const { email, password, rememberMe } = await request.json();
 
     if (!email || !password) {
       return NextResponse.json(
@@ -53,12 +53,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Generar token
-    const token = generateToken({
-      userId: user.id,
-      email: user.email,
-      role: user.role,
-      squad: user.squad,
-    });
+    const token = generateToken(
+      {
+        userId: user.id,
+        email: user.email,
+        role: user.role,
+        squad: user.squad,
+      },
+      rememberMe === true,
+    );
 
     return NextResponse.json(
       {
