@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
     // Verificar si ya existe un usuario
     const userCount = await prisma.user.count();
@@ -26,12 +26,14 @@ export async function POST(request: NextRequest) {
         password: hashedPassword,
         name: 'Administrador',
         role: 'admin',
+        squad: 'PROFESIONAL',
       },
       select: {
         id: true,
         email: true,
         name: true,
         role: true,
+        squad: true,
       },
     });
 

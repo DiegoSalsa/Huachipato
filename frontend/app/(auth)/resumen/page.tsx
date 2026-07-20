@@ -1,10 +1,10 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState, useCallback } from "react";
 import HuachipatoLoader from "@/components/HuachipatoLoader";
 import RoleGuard from "@/components/RoleGuard";
 
-// ─── Types ──────────────────────────────────────────────────────────
+// Tipos
 
 interface PlayerDailyMetrics {
   playerId: string;
@@ -43,14 +43,14 @@ interface OverviewData {
 
 type ViewTab = "today" | "week";
 
-const positionLabels: Record<string, string> = {
+const positionEtiquetas: Record<string, string> = {
   PORTERO: "Portero",
   DEFENSA: "Defensa",
   MEDIOCAMPISTA: "Mediocampista",
   DELANTERO: "Delantero",
 };
 
-// ─── Metric formatting helpers ─────────────────────────────────────
+// Funciones de formato de metricas
 
 function fmtDist(meters: number): string {
   if (meters >= 1000) return `${(meters / 1000).toFixed(1)} km`;
@@ -61,7 +61,7 @@ function fmtNum(n: number): string {
   return n.toLocaleString("es-CL");
 }
 
-// ─── Stat Card Component ────────────────────────────────────────────
+// Componente de tarjeta de indicador
 
 function StatCard({
   icon,
@@ -99,7 +99,7 @@ function StatCard({
   );
 }
 
-// ─── Main Page ──────────────────────────────────────────────────────
+// Pagina principal
 
 export default function ResumenPage() {
   const [data, setData] = useState<OverviewData | null>(null);
@@ -135,7 +135,7 @@ export default function ResumenPage() {
   const daily = data?.daily ?? [];
   const weekly = data?.weekly ?? [];
 
-  // Aggregate KPIs for Today
+  // Calcular indicadores del dia
   const todayTotals = daily.reduce(
     (acc, p) => ({
       distance: acc.distance + p.totalDistance,
@@ -146,7 +146,7 @@ export default function ResumenPage() {
     { distance: 0, hsr: 0, sprints: 0, players: 0 },
   );
 
-  // Aggregate KPIs for Week
+  // Calcular indicadores de la semana
   const weekTotals = weekly.reduce(
     (acc, p) => ({
       distance: acc.distance + p.totalDistance,
@@ -157,7 +157,7 @@ export default function ResumenPage() {
     { distance: 0, hsr: 0, sprints: 0, players: 0 },
   );
 
-  // Format selected date for display
+  // Formatear la fecha seleccionada
   const displayDate = selectedDate
     ? new Date(selectedDate + "T12:00:00").toLocaleDateString("es-CL", {
         weekday: "long",
@@ -170,7 +170,7 @@ export default function ResumenPage() {
   return (
       <RoleGuard allowedRoles={["gps", "admin"]}>
       <div className="flex flex-col bg-white min-h-full">
-        {/* Header */}
+        {/* Encabezado */}
         <header className="border-b border-slate-200 bg-white px-4 py-5 md:px-8">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
@@ -187,7 +187,7 @@ export default function ResumenPage() {
               </p>
             </div>
             <div className="flex items-center gap-3">
-              {/* Date Picker */}
+              {/* Selector de fecha */}
               <input
                 type="date"
                 value={selectedDate}
@@ -199,7 +199,7 @@ export default function ResumenPage() {
         </header>
 
         <div className="space-y-6 p-4 md:p-8 overflow-hidden">
-          {/* Tab Switcher */}
+          {/* Selector de vista */}
           <div className="flex gap-2 p-1 bg-slate-100 rounded-xl w-fit">
             <button
               onClick={() => setActiveTab("today")}
@@ -243,10 +243,10 @@ export default function ResumenPage() {
             <HuachipatoLoader />
           ) : (
             <>
-              {/* ─── TODAY TAB ───────────────────────────────────── */}
+              {/* Vista diaria */}
               {activeTab === "today" && (
                 <div className="space-y-6 animate-in fade-in">
-                  {/* KPI Cards */}
+                  {/* Tarjetas de indicadores */}
                   <div className="grid grid-cols-2 gap-3 md:gap-4 md:grid-cols-4">
                     <StatCard
                       icon="group"
@@ -307,7 +307,7 @@ export default function ResumenPage() {
                         </p>
                       </div>
 
-                      {/* Desktop Table */}
+                      {/* Tabla de escritorio */}
                       <div className="hidden md:block overflow-x-auto">
                         <table className="w-full text-left text-sm">
                           <thead className="border-b border-slate-100 bg-slate-50 text-xs font-bold uppercase tracking-wide text-slate-600">
@@ -333,7 +333,7 @@ export default function ResumenPage() {
                                   {p.playerName}
                                 </td>
                                 <td className="px-5 py-3.5 text-slate-600">
-                                  {positionLabels[p.position] ?? p.position}
+                                  {positionEtiquetas[p.position] ?? p.position}
                                 </td>
                                 <td className="px-5 py-3.5 text-right font-medium text-slate-700">
                                   {fmtDist(p.totalDistance)}
@@ -369,14 +369,14 @@ export default function ResumenPage() {
                         </table>
                       </div>
 
-                      {/* Mobile Card View */}
+                      {/* Vista movil en tarjetas */}
                       <div className="md:hidden divide-y divide-slate-100">
                         {daily.map((p) => (
                           <div key={p.playerId} className="p-4">
                             <div className="flex items-center justify-between mb-2">
                               <div>
                                 <p className="font-semibold text-slate-900 text-sm">{p.playerName}</p>
-                                <p className="text-xs text-slate-500">{positionLabels[p.position] ?? p.position}</p>
+                                <p className="text-xs text-slate-500">{positionEtiquetas[p.position] ?? p.position}</p>
                               </div>
                               {p.sessionsCount > 1 && (
                                 <span className="inline-flex items-center gap-1 rounded-lg bg-violet-50 px-2 py-0.5 text-[10px] font-bold text-violet-700">
@@ -407,10 +407,10 @@ export default function ResumenPage() {
                 </div>
               )}
 
-              {/* ─── WEEK TAB ────────────────────────────────────── */}
+              {/* Vista semanal */}
               {activeTab === "week" && (
                 <div className="space-y-6 animate-in fade-in">
-                  {/* Week label */}
+                  {/* Etiqueta de semana */}
                   {data?.weekLabel && (
                     <div className="flex items-center gap-2 text-sm font-medium text-slate-500">
                       <span className="material-symbols-outlined text-base text-emerald-600">
@@ -420,7 +420,7 @@ export default function ResumenPage() {
                     </div>
                   )}
 
-                  {/* KPI Cards */}
+                  {/* Tarjetas de indicadores */}
                   <div className="grid grid-cols-2 gap-3 md:gap-4 md:grid-cols-4">
                     <StatCard
                       icon="group"
@@ -433,7 +433,7 @@ export default function ResumenPage() {
                       icon="directions_run"
                       label="Dist. Acumulada"
                       value={fmtDist(weekTotals.distance)}
-                      sub="Lun → Dom"
+                      sub="Lun -> Dom"
                       accent="blue"
                     />
                     <StatCard
@@ -475,7 +475,7 @@ export default function ResumenPage() {
                         </p>
                       </div>
 
-                      {/* Desktop Table */}
+                      {/* Tabla de escritorio */}
                       <div className="hidden md:block overflow-x-auto">
                         <table className="w-full text-left text-sm">
                           <thead className="border-b border-slate-100 bg-slate-50 text-xs font-bold uppercase tracking-wide text-slate-600">
@@ -501,7 +501,7 @@ export default function ResumenPage() {
                                   {p.playerName}
                                 </td>
                                 <td className="px-5 py-3.5 text-slate-600">
-                                  {positionLabels[p.position] ?? p.position}
+                                  {positionEtiquetas[p.position] ?? p.position}
                                 </td>
                                 <td className="px-5 py-3.5 text-right font-medium text-slate-700">
                                   {fmtDist(p.totalDistance)}
@@ -533,14 +533,14 @@ export default function ResumenPage() {
                         </table>
                       </div>
 
-                      {/* Mobile Card View */}
+                      {/* Vista movil en tarjetas */}
                       <div className="md:hidden divide-y divide-slate-100">
                         {weekly.map((p) => (
                           <div key={p.playerId} className="p-4">
                             <div className="flex items-center justify-between mb-2">
                               <div>
                                 <p className="font-semibold text-slate-900 text-sm">{p.playerName}</p>
-                                <p className="text-xs text-slate-500">{positionLabels[p.position] ?? p.position}</p>
+                                <p className="text-xs text-slate-500">{positionEtiquetas[p.position] ?? p.position}</p>
                               </div>
                               <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
                                 {p.daysWithData}<span className="text-emerald-500 font-normal">/7</span> días

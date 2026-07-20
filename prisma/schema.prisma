@@ -14,10 +14,20 @@ model User {
   password  String
   name      String?
   role      String   @default("user")
+  squad     Squad    @default(PROFESIONAL)
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("users")
+}
+
+enum Squad {
+  PROFESIONAL
+  SUB_20
+  SUB_18
+  SUB_17
+  SUB_16
+  SUB_15
 }
 
 enum Position {
@@ -29,7 +39,8 @@ enum Position {
 
 model Player {
   id        String   @id @default(cuid())
-  name      String   @unique
+  name      String
+  squad     Squad    @default(PROFESIONAL)
   position  Position @default(MEDIOCAMPISTA)
   photo     String?  @db.Text
   createdAt DateTime @default(now()) @map("created_at")
@@ -39,6 +50,8 @@ model Player {
   weeklyStats      WeeklyStat[]
   injuries         Injury[]
 
+  @@unique([squad, name])
+  @@index([squad])
   @@map("players")
 }
 
@@ -46,12 +59,12 @@ model GpsDailySession {
   id             Int      @id @default(autoincrement())
   playerId       String   @map("player_id")
   date           DateTime
-  sessionNumber  Int      @map("session_number") @default(1)
+  sessionNumber  Int      @default(1) @map("session_number")
   year           Int      @default(0)
   weekNumber     Int      @default(0) @map("week_number")
-  totalDistance   Float    @map("total_distance") @default(0)
+  totalDistance  Float    @default(0) @map("total_distance")
   hsr            Float    @default(0)
-  sprintDistance  Float    @default(0) @map("sprint_distance")
+  sprintDistance Float    @default(0) @map("sprint_distance")
   sprints        Int      @default(0)
   accelerations  Int      @default(0)
   decelerations  Int      @default(0)
@@ -69,9 +82,9 @@ model GpsDailyReport {
   date           DateTime
   year           Int      @default(0)
   weekNumber     Int      @default(0) @map("week_number")
-  totalDistance   Float    @map("total_distance")   // meters
-  hsr            Float    @default(0)               // high speed running (meters)
-  sprintDistance  Float    @default(0) @map("sprint_distance") // meters
+  totalDistance  Float    @map("total_distance") // meters
+  hsr            Float    @default(0) // high speed running (meters)
+  sprintDistance Float    @default(0) @map("sprint_distance") // meters
   sprints        Int      @default(0)
   accelerations  Int      @default(0)
   decelerations  Int      @default(0)
@@ -89,9 +102,9 @@ model WeeklyStat {
   playerId          String @map("player_id")
   year              Int
   weekNumber        Int    @map("week_number")
-  totalDistance      Float  @map("total_distance")       // meters (sum of daily)
-  highVelocity      Float  @map("high_velocity")         // HSR + Sprint Distance
-  mechanicalImpacts Float  @map("mechanical_impacts")    // Sprints + Acc + Dec
+  totalDistance     Float  @map("total_distance") // meters (sum of daily)
+  highVelocity      Float  @map("high_velocity") // HSR + Sprint Distance
+  mechanicalImpacts Float  @map("mechanical_impacts") // Sprints + Acc + Dec
 
   player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
 
@@ -109,8 +122,8 @@ model Injury {
   status                String
   description           String?
 
-  createdAt             DateTime @default(now()) @map("created_at")
-  updatedAt             DateTime @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
 

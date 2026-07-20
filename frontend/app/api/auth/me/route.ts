@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { verifyToken, getTokenFromRequest } from '../jwt-utils';
+import { isSquad } from '@/lib/squads';
 
 const prisma = new PrismaClient();
 
@@ -24,7 +25,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Obtener usuario del BD
+    // Obtener usuario de la base de datos
     const user = await prisma.user.findUnique({
       where: { id: payload.userId },
       select: {
@@ -32,6 +33,7 @@ export async function GET(request: NextRequest) {
         email: true,
         name: true,
         role: true,
+        squad: true,
       },
     });
 
@@ -45,6 +47,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       {
         user,
+        activeSquad:
+          user.role === 'admin' && isSquad(request.cookies.get('active_squad')?.value)
+            ? request.cookies.get('active_squad')!.value
+            : user.squad,
       },
       { status: 200 }
     );

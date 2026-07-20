@@ -1,8 +1,11 @@
 import { processDailyUpload, processWeeklyUpload } from "@/lib/api/upload";
 import { NextRequest, NextResponse } from "next/server";
+import { getRequestContext, unauthorized } from "@/lib/server-auth";
 
 export async function POST(request: NextRequest) {
   try {
+    const context = await getRequestContext(request, ["gps"]);
+    if (!context) return unauthorized();
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
     const mode = formData.get("mode") as string | null; // "daily" or "weekly"
@@ -29,12 +32,12 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const result = await processWeeklyUpload(file, year, weekNumber);
+      const result = await processWeeklyUpload(file, year, weekNumber, context.squad);
       return NextResponse.json(result);
     } else {
-      // Default: daily upload
+      // Por defecto se procesa como carga diaria
       const reportDate = (formData.get("date") as string) || new Date().toISOString();
-      const result = await processDailyUpload(file, reportDate);
+      const result = await processDailyUpload(file, reportDate, context.squad);
       return NextResponse.json(result);
     }
   } catch (err) {

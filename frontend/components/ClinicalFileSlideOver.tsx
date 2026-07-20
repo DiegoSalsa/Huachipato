@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect } from "react";
 import { X, Calendar, Activity, Clock, FileText, User, Edit2, Check, AlertCircle, Plus, HeartPulse } from "lucide-react";
 
 export type ClinicalFileInjury = {
@@ -27,17 +27,17 @@ interface ClinicalFileSlideOverProps {
 }
 
 export default function ClinicalFileSlideOver({ isOpen, onClose, player, onUpdate, readOnly = false }: ClinicalFileSlideOverProps) {
-  // Active Injury State (if any)
+  // Estado de lesion activa
   const activeInjury = player?.injuries.find(i => i.status === "En recuperación" || i.status === "Recaída") || null;
   
-  // Edit State
+  // Estado de edicion
   const [isEditing, setIsEditing] = useState(false);
   const [editDays, setEditDays] = useState<number>(0);
   const [editStatus, setEditStatus] = useState("");
   const [editSeverity, setEditSeverity] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
-  // New Injury Registration State
+  // Estado de registro de nueva lesion
   const [isRegistering, setIsRegistering] = useState(false);
   const [newInjuryType, setNewInjuryType] = useState("");
   const [newSeverity, setNewSeverity] = useState("Leve");
@@ -46,7 +46,7 @@ export default function ClinicalFileSlideOver({ isOpen, onClose, player, onUpdat
   const [newStatus, setNewStatus] = useState("En recuperación");
   const [newDescription, setNewDescription] = useState("");
 
-  // ACWR State
+  // Estado ACS
   const [acwrRatio, setAcwrRatio] = useState<number | null>(null);
   const [acwrStatus, setAcwrStatus] = useState<string>("Cargando...");
   const [acwrColor, setAcwrColor] = useState<string>("text-gray-600");
@@ -186,7 +186,7 @@ export default function ClinicalFileSlideOver({ isOpen, onClose, player, onUpdat
       });
 
       if (res.ok) {
-        // Reset form
+        // Limpiar formulario
         setNewInjuryType("");
         setNewSeverity("Leve");
         setNewDate("");
@@ -194,7 +194,7 @@ export default function ClinicalFileSlideOver({ isOpen, onClose, player, onUpdat
         setNewStatus("En recuperación");
         setNewDescription("");
         setIsRegistering(false);
-        onUpdate(); // Actualiza el padre y re-fetchea el jugador
+        onUpdate(); // Actualiza la vista principal y vuelve a cargar el jugador
       } else {
         alert("Error al registrar la lesión");
       }
@@ -209,16 +209,16 @@ export default function ClinicalFileSlideOver({ isOpen, onClose, player, onUpdat
 
   return (
     <>
-      {/* Backdrop */}
+      {/* Fondo del panel */}
       <div 
         className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40 transition-opacity"
         onClick={onClose}
       />
       
-      {/* Slide-over panel */}
+      {/* Panel lateral */}
       <div className={`fixed inset-y-0 right-0 z-50 w-full md:max-w-lg bg-white shadow-2xl transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'} flex flex-col`}>
         
-        {/* Header */}
+        {/* Encabezado */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
             <HeartPulse className="w-5 h-5 text-red-500" />
@@ -232,9 +232,9 @@ export default function ClinicalFileSlideOver({ isOpen, onClose, player, onUpdat
           </button>
         </div>
 
-        {/* Content */}
+        {/* Contenido */}
         <div className="flex-1 overflow-y-auto">
-          {/* Patient Header */}
+          {/* Encabezado del jugador */}
           <div className="p-6 bg-gradient-to-b from-gray-50 to-white border-b border-gray-100">
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 shadow-inner">
@@ -254,7 +254,7 @@ export default function ClinicalFileSlideOver({ isOpen, onClose, player, onUpdat
 
           <div className="p-6 space-y-8">
             
-            {/* ACWR Context */}
+            {/* Contexto ACS */}
             <section>
               <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-4 flex items-center gap-2">
                 <Activity className="w-4 h-4 text-purple-500" />
@@ -279,7 +279,7 @@ export default function ClinicalFileSlideOver({ isOpen, onClose, player, onUpdat
               </div>
             </section>
 
-            {/* Current Status / Registration */}
+            {/* Estado actual y registro */}
             <section>
               {activeInjury ? (
                 <>
@@ -373,7 +373,7 @@ export default function ClinicalFileSlideOver({ isOpen, onClose, player, onUpdat
                       </div>
                     )}
                     
-                    {/* Action to Discharge */}
+                    {/* Accion para alta medica */}
                     {!isEditing && !readOnly && (
                       <div className="pt-2 border-t border-gray-50 flex justify-end">
                         <button 
@@ -454,7 +454,7 @@ export default function ClinicalFileSlideOver({ isOpen, onClose, player, onUpdat
               )}
             </section>
 
-            {/* Evolution Timeline */}
+            {/* Historial de evolucion */}
             <section>
               <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-4">
                 Historial Médico

@@ -1,15 +1,16 @@
-import { prisma } from "@/lib/prisma";
+﻿import { prisma } from "@/lib/prisma";
 import { normalizeName, parseFloatSafe, parseIntSafe } from "@/lib/utils";
+import type { Prisma } from "@prisma/client";
 import * as XLSX from "xlsx";
 import { parse } from "csv-parse/sync";
 import {
-  aggregateAllAffectedWeeks,
   aggregateWeekForPlayer,
   getISOWeek,
 } from "@/lib/services/weekly-aggregator";
 import { aggregateDailySessionsBatch } from "@/lib/services/daily-aggregator";
+import type { Squad } from "@/lib/squads";
 
-// ─── Types ──────────────────────────────────────────────────────────
+// Tipos
 
 type DailyUploadResult = {
   mode: "daily";
@@ -36,15 +37,15 @@ type WeeklyUploadResult = {
 
 export type UploadResult = DailyUploadResult | WeeklyUploadResult;
 
-// ─── Unified Column Mapping ─────────────────────────────────────────
-// Used for BOTH Excel header mapping and CSV header mapping.
+// Mapeo unificado de columnas
+// Se usa para mapear columnas de Excel y CSV.
 
 const COL_MAP: Record<string, string> = {
-  // Player name
+  // Nombre del jugador
   "Player Name": "name", Nombre: "name", Name: "name",
   "player name": "name", Jugador: "name",
 
-  // Total distance
+  // Distancia total
   "Total Distance": "totalDistance", "total distance": "totalDistance",
   Dist: "totalDistance", Distancia: "totalDistance",
   "Distancia Total": "totalDistance",
@@ -55,7 +56,7 @@ const COL_MAP: Record<string, string> = {
   "High Speed Running (Relative)": "hsr",
   "high speed running (relative)": "hsr",
 
-  // Sprint distance
+  // Distancia en sprint
   "Sprint Distance": "sprintDistance", "sprint distance": "sprintDistance",
   "Spr Dist": "sprintDistance", "Sprint Dist": "sprintDistance",
   "Distancia Sprint": "sprintDistance",
@@ -64,29 +65,29 @@ const COL_MAP: Record<string, string> = {
   "No. Of Spr": "sprints", Sprints: "sprints", sprints: "sprints",
   "Number of Sprints": "sprints",
 
-  // Accelerations
+  // Aceleraciones
   Acc: "accelerations", acc: "accelerations",
   Accelerations: "accelerations", Aceleraciones: "accelerations",
   "Accelerations (Relative)": "accelerations",
   "accelerations (relative)": "accelerations",
 
-  // Decelerations
+  // Desaceleraciones
   Dec: "decelerations", dec: "decelerations",
   Decelerations: "decelerations", Desaceleraciones: "decelerations",
   "Decelerations (Relative)": "decelerations",
   "decelerations (relative)": "decelerations",
 
-  // Max speed
+  // Velocidad maxima
   "Max Spd": "maxSpeed", "Max Speed": "maxSpeed",
   "max spd": "maxSpeed", "Vel Max": "maxSpeed",
   "Velocidad Maxima": "maxSpeed",
 
-  // Weekly-specific columns
+  // Columnas semanales
   "High Velocity": "highVelocity", "Alta Velocidad Total": "highVelocity",
   "Mechanical Impacts": "mechanicalImpacts", "Impactos Mecanicos": "mechanicalImpacts",
 };
 
-// ─── Helpers ─────────────────────────────────────────────────────────
+// Funciones auxiliares
 
 interface ParsedDailyRow {
   name: string;
@@ -98,31 +99,31 @@ interface ParsedDailyRow {
   decelerations: number;
 }
 
-/**
- * Detect if a buffer is a CSV file (semicolon-delimited text)
- * by checking the first bytes for text patterns.
- */
+//
+// Detecta si el archivo corresponde a CSV o Excel.
+// Se revisa la extension y, si es necesario, la firma inicial del archivo.
+//
 function isCsvFile(buffer: Buffer, fileName?: string): boolean {
-  // Check file extension first
+  // Revisar primero la extension del archivo
   if (fileName) {
     const ext = fileName.toLowerCase().split(".").pop();
     if (ext === "csv") return true;
     if (ext === "xlsx" || ext === "xls") return false;
   }
 
-  // Fallback: sniff content — CSV files start with text, Excel starts with PK or binary
+  // Si no hay extension, revisar el contenido - los CSV comienzan como texto y Excel usa firma binaria
   const header = buffer.subarray(0, 4);
-  // XLSX files start with PK (zip signature: 0x504B)
+  // Los archivos XLSX comienzan con firma PK
   if (header[0] === 0x50 && header[1] === 0x4B) return false;
-  // XLS files start with D0 CF 11 E0 (OLE2)
+  // Los archivos XLS comienzan con firma OLE2
   if (header[0] === 0xD0 && header[1] === 0xCF) return false;
-  // Otherwise assume CSV
+  // Si no coincide con Excel, asumir CSV
   return true;
 }
 
-/**
- * Parse a CSV buffer (semicolon-delimited) and map to daily rows.
- */
+//
+// Lee un archivo CSV separado por punto y coma y lo transforma a filas diarias.
+//
 function parseCsvRows(buffer: Buffer): ParsedDailyRow[] {
   let content = buffer.toString("utf8");
   if (content.includes("\uFFFD")) {
@@ -167,9 +168,9 @@ function parseCsvRows(buffer: Buffer): ParsedDailyRow[] {
   return parsed;
 }
 
-/**
- * Parse an Excel buffer and map to daily rows.
- */
+//
+// Lee un archivo Excel y lo transforma a filas diarias.
+//
 function parseExcelRows(buffer: Buffer): ParsedDailyRow[] {
   const workbook = XLSX.read(buffer, { type: "buffer" });
   const sheetName = workbook.SheetNames[0];
@@ -230,69 +231,52 @@ function readSpreadsheetByIndex(buffer: Buffer): Record<string, unknown>[] {
     });
 }
 
-// ─── Player helpers ──────────────────────────────────────────────────
+// Funciones de jugadores
 
-async function findOrCreatePlayer(rawName: string) {
+async function findOrCreatePlayer(rawName: string, squad: Squad) {
   const name = normalizeName(rawName);
   if (!name) return { player: null, created: false };
 
-  let player = await prisma.player.findUnique({ where: { name } });
+  let player = await prisma.player.findUnique({ where: { squad_name: { squad, name } } });
   if (!player) {
     player = await prisma.player.create({
-      data: { name, position: "MEDIOCAMPISTA" },
+      data: { name, position: "MEDIOCAMPISTA", squad },
     });
     return { player, created: true };
   }
   return { player, created: false };
 }
 
-async function findOrCreatePlayerTx(
-  tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
-  rawName: string,
-): Promise<{ playerId: string; created: boolean }> {
-  const name = normalizeName(rawName);
-  if (!name) throw new Error(`Invalid player name: "${rawName}"`);
-
-  const existing = await tx.player.findUnique({ where: { name } });
-  if (existing) {
-    return { playerId: existing.id, created: false };
-  }
-
-  const created = await tx.player.create({
-    data: { name, position: "MEDIOCAMPISTA" },
-  });
-  return { playerId: created.id, created: true };
-}
-
-// ─── Daily Upload (Unified: CSV + Excel) ─────────────────────────────
+// Carga diaria unificada CSV y Excel
 //
-// Auto-detects file format (CSV or Excel), parses rows, and persists
-// through the session-based transactional flow:
+// Detecta automaticamente el formato del archivo CSV o Excel, lee filas y guarda los datos
+// mediante el flujo transaccional por sesiones:
 //
-//   file → parse → gps_daily_sessions → aggregate → gps_daily_reports → weekly_stats
+//   archivo -> lectura -> sesiones GPS -> agregados diarios -> estadisticas semanales
 //
-// Supports multiple sessions per day (AM/PM double sessions).
+// Permite multiples sesiones por dia por ejemplo manana y tarde.
 
 export async function processDailyUpload(
   file: File,
   reportDate: string,
+  squad: Squad,
 ): Promise<DailyUploadResult> {
   const buffer = Buffer.from(await file.arrayBuffer());
 
-  // Auto-detect format and parse
+  // Detectar formato y leer filas
   const csv = isCsvFile(buffer, file.name);
   const rows = csv ? parseCsvRows(buffer) : parseExcelRows(buffer);
 
   if (rows.length === 0) throw new Error("EMPTY_SPREADSHEET");
 
-  // Parse date and force it to Noon UTC to avoid timezone shifts
+  // Fijar la fecha al mediodia UTC para evitar desfases horarios
   const dateStr = reportDate.includes('T') ? reportDate.split('T')[0] : reportDate;
   const date = new Date(`${dateStr}T12:00:00.000Z`);
   const { year, week } = getISOWeek(date);
 
-  // ── Consolidate duplicate player names within the same file ──
-  // Some CSVs have the same player on multiple rows (e.g. half 1 + half 2).
-  // Sum their metrics into a single row per player before inserting.
+  // Consolidate duplicate player names within the same file
+  // Algunos CSV repiten jugadores en varias filas (por ejemplo half 1 + half 2).
+  // Suma sus metricas en una sola fila por jugador antes de insertar.
   const consolidated = new Map<string, ParsedDailyRow>();
   for (const row of rows) {
     const normalized = normalizeName(row.name);
@@ -314,24 +298,24 @@ export async function processDailyUpload(
 
   const maxSession = await prisma.gpsDailySession.aggregate({
     _max: { sessionNumber: true },
-    where: { date },
+    where: { date, player: { squad } },
   });
   const sessionNumber = (maxSession._max.sessionNumber ?? 0) + 1;
 
-  // ── 1. Batch Find or Create Players ──
+  // 1. Buscar o crear jugadores por lote
   const allNames = uniqueRows.map((r) => r.name);
   const existingPlayers = await prisma.player.findMany({
-    where: { name: { in: allNames } },
+    where: { squad, name: { in: allNames } },
   });
 
-  const playerMap = new Map(existingPlayers.map((p) => [p.name, p.id]));
+  const playerMap = new Map<string, string>(existingPlayers.map((p) => [p.name, p.id]));
   let playersCreated = 0;
 
   const missingNames = allNames.filter((name) => !playerMap.has(name));
   if (missingNames.length > 0) {
     const createdPlayers = await Promise.all(
       missingNames.map((name) =>
-        prisma.player.create({ data: { name, position: "MEDIOCAMPISTA" } }),
+        prisma.player.create({ data: { name, position: "MEDIOCAMPISTA", squad } }),
       ),
     );
     for (const p of createdPlayers) {
@@ -340,8 +324,8 @@ export async function processDailyUpload(
     }
   }
 
-  // ── 2. Batch Insert Sessions ──
-  const sessionData = uniqueRows.map((row) => ({
+  // 2. Insertar sesiones por lote
+  const sessionData: Prisma.GpsDailySessionCreateManyInput[] = uniqueRows.map((row) => ({
     playerId: playerMap.get(row.name)!,
     date,
     sessionNumber,
@@ -356,13 +340,13 @@ export async function processDailyUpload(
   }));
 
   await prisma.gpsDailySession.createMany({ data: sessionData });
-  const affectedPlayerIds = Array.from(playerMap.values());
+  const affectedPlayerIds: string[] = Array.from(playerMap.values());
 
-  // ── 3. Batch Aggregations ──
-  // Recalculate daily aggregates (concurrently)
+  // 3. Recalcular agregados por lote
+  // Recalcular agregados diarios en paralelo
   await aggregateDailySessionsBatch(affectedPlayerIds, date);
 
-  // Recalculate weekly stats (concurrently)
+  // Recalcular estadisticas semanales en paralelo
   const uniquePlayerIds = [...new Set(affectedPlayerIds)];
   await Promise.all(
     uniquePlayerIds.map((playerId) => aggregateWeekForPlayer(playerId, year, week)),
@@ -396,12 +380,13 @@ export async function processDailyUpload(
   };
 }
 
-// ─── Weekly Upload (Historical / S-Files) ────────────────────────────
+// Carga semanal historica
 
 export async function processWeeklyUpload(
   file: File,
   year: number,
   weekNumber: number,
+  squad: Squad,
 ): Promise<WeeklyUploadResult> {
   const buffer = Buffer.from(await file.arrayBuffer());
   const rows = readSpreadsheetByIndex(buffer);
@@ -430,7 +415,7 @@ export async function processWeeklyUpload(
       continue;
     }
 
-    const { player, created } = await findOrCreatePlayer(rawName);
+    const { player, created } = await findOrCreatePlayer(rawName, squad);
     if (!player) continue;
     if (created) playersCreated++;
 

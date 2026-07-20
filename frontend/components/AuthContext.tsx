@@ -1,8 +1,9 @@
-'use client';
+﻿'use client';
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { isSquad, type Squad } from '@/lib/squads';
 
-// ─── Types ──────────────────────────────────────────────────────────
+// Tipos
 
 export type UserRole = 'medico' | 'gps' | 'admin';
 
@@ -11,23 +12,27 @@ export interface AuthUser {
   email: string;
   name: string | null;
   role: UserRole;
+  squad: Squad;
 }
 
-interface AuthContextValue {
+interface AuthContextValor {
   user: AuthUser | null;
   loading: boolean;
   error: string | null;
   isAuthenticated: boolean;
   logout: () => Promise<void>;
-  /** Check if the user has one of the given roles */
+  //  Verifica si el usuario tiene alguno de los roles indicados
   hasRole: (...roles: UserRole[]) => boolean;
-  /** Check if the current user can access a specific page */
+  //  Verifica si el usuario actual puede acceder a una pagina
   canAccess: (page: AppPage) => boolean;
-  /** Check if the current user can perform a specific action */
+  //  Verifica si el usuario actual puede realizar una accion
   canPerform: (action: AppAction) => boolean;
+  activeSquad: Squad | null;
+  canSwitchSquad: boolean;
+  setActiveSquad: (squad: Squad) => void;
 }
 
-// ─── Pages & Actions ────────────────────────────────────────────────
+// Paginas y acciones
 
 export type AppPage =
   | 'bienvenida'
@@ -45,7 +50,7 @@ export type AppAction =
   | 'create_player'
   | 'manage_users';
 
-// ─── Permission Matrices ────────────────────────────────────────────
+// Matriz de permisos
 
 const PAGE_ACCESS: Record<AppPage, UserRole[]> = {
   bienvenida: ['medico', 'gps', 'admin'],
@@ -65,14 +70,15 @@ const ACTION_ACCESS: Record<AppAction, UserRole[]> = {
   manage_users: ['admin'],
 };
 
-// ─── Context ────────────────────────────────────────────────────────
+// Contexto
 
-const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+const AuthContext = createContext<AuthContextValor | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeSquad, setActiveSquadState] = useState<Squad | null>(null);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -98,6 +104,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         const data = await response.json();
         setUser(data.user as AuthUser);
+        setActiveSquadState(data.activeSquad as Squad);
       } catch (err) {
         console.error('Error fetching user:', err);
         setError('Error al obtener usuario');
@@ -154,6 +161,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [user],
   );
 
+  const setActiveSquad = useCallback((squad: Squad) => {
+    if (user?.role !== 'admin' || !isSquad(squad)) return;
+    document.cookie = `active_squad=${squad}; path=/; max-age=2592000; SameSite=Lax`;
+    setActiveSquadState(squad);
+    window.location.reload();
+  }, [user]);
+
   return (
     <AuthContext.Provider
       value={{
@@ -165,6 +179,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         hasRole,
         canAccess,
         canPerform,
+        activeSquad,
+        canSwitchSquad: user?.role === 'admin',
+        setActiveSquad,
       }}
     >
       {children}

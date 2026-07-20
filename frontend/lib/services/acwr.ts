@@ -1,20 +1,22 @@
-import { prisma } from "@/lib/prisma";
+﻿import { prisma } from "@/lib/prisma";
 
-/**
- * ACWR (Acute:Chronic Workload Ratio) Calculator
- *
- * Formulas (from the club's Excel — FIXED DENOMINATOR):
- *   Acute Load   = metric value of the current week
- *   Chronic 28d  = (S_actual + S_n-1 + S_n-2 + S_n-3) / 4
- *
- * REGLA DE ORO: Always divide by 4, even if some weeks have no data.
- * Missing weeks count as 0. This matches the Excel's *0.25 formula.
- *
- * Ratios computed:
- *   1. A:C Distance 28d
- *   2. A:C High Velocity 28d
- *   3. A:C Mechanical Impacts 28d
- */
+import type { Squad } from "@/lib/squads";
+
+//
+// Calculadora ACS de carga aguda y cronica
+//
+// Formulas usadas por la planilla del club con denominador fijo:
+//   Carga aguda = valor de la semana actual
+//   Carga cronica 28 dias = promedio de la semana actual y las tres previas
+//
+// Regla principal: siempre dividir por 4, aunque falten semanas con datos.
+// Las semanas sin datos cuentan como 0, igual que en la planilla Excel.
+//
+// Ratios calculados:
+//   1. A:C distancia 28 dias
+//   2. A:C alta velocidad 28 dias
+//   3. A:C impactos mecanicos 28 dias
+//
 
 export type AcwrRisk = "bajo" | "optimo" | "cuidado" | "alto";
 
@@ -41,7 +43,7 @@ export interface PlayerAcwr {
   riskMechImpacts: AcwrRisk | null;
   overallRisk: AcwrRisk | null;
   
-  // 21 days metrics (3 weeks)
+  // Metricas de 21 dias, equivalentes a 3 semanas
   chronicDistance21: number | null;
   chronicHighVelocity21: number | null;
   chronicMechImpacts21: number | null;
@@ -56,9 +58,9 @@ export interface PlayerAcwr {
   weeksAvailable: number;
 }
 
-/**
- * Classify ACWR ratio into risk zone.
- */
+//
+// Clasifica el ratio ACS segun zona de riesgo.
+//
 export function classifyRisk(ratio: number | null): AcwrRisk | null {
   if (ratio === null || ratio === undefined) return null;
   if (ratio < 0.8) return "bajo";
@@ -67,9 +69,9 @@ export function classifyRisk(ratio: number | null): AcwrRisk | null {
   return "alto";
 }
 
-/**
- * Get the worst risk among multiple individual risks.
- */
+//
+// Obtiene el mayor nivel de riesgo entre varias metricas.
+//
 function worstRisk(risks: (AcwrRisk | null)[]): AcwrRisk | null {
   const validRisks = risks.filter((r): r is AcwrRisk => r !== null);
   if (validRisks.length === 0) return null;
@@ -81,17 +83,17 @@ function worstRisk(risks: (AcwrRisk | null)[]): AcwrRisk | null {
   return "optimo";
 }
 
-/**
- * Build the 4 week slots (current + 3 previous) with fixed positions.
- * Missing weeks are { totalDistance: 0, highVelocity: 0, mechanicalImpacts: 0 }.
- * This ensures division by 4 ALWAYS, matching the club's Excel.
- */
+//
+// Construye las 4 semanas usadas para el calculo, actual mas tres previas.
+// Las semanas faltantes se completan con valores en cero.
+// Esto asegura la division fija por 4 usada por el club.
+//
 async function getWeeklyStats4Slots(
   playerId: string,
   year: number,
   week: number,
 ) {
-  // Build the 4 (year, weekNumber) pairs going backwards
+  // Construir las cuatro combinaciones ano y semana hacia atras
   const weekPairs: { year: number; weekNumber: number }[] = [];
   let curYear = year;
   let curWeek = week;
@@ -105,7 +107,7 @@ async function getWeeklyStats4Slots(
     }
   }
 
-  // Fetch whatever data exists
+  // Obtener los datos existentes
   const stats = await prisma.weeklyStat.findMany({
     where: {
       playerId,
@@ -116,8 +118,8 @@ async function getWeeklyStats4Slots(
     },
   });
 
-  // Build fixed 4-slot array: [S_actual, S_n-1, S_n-2, S_n-3]
-  // Missing weeks → all zeros
+  // Construir arreglo fijo de cuatro semanas
+  // Semanas faltantes se completan con cero
   const ZERO = { totalDistance: 0, highVelocity: 0, mechanicalImpacts: 0 };
 
   const slots = weekPairs.map((wp) => {
@@ -136,18 +138,18 @@ async function getWeeklyStats4Slots(
   return { slots, weekPairs, foundCount: stats.length };
 }
 
-/**
- * Compute ACWR for a single player for a given week/year.
- *
- * FÓRMULA EXACTA (sin excepciones):
- *   Acute  = Valor de S_actual
- *   Chronic = (S_actual + S_n-1 + S_n-2 + S_n-3) / 4
- *   Ratio  = Acute / Chronic
- *
- * Si una semana no existe en la DB → su valor es 0.
- * SIEMPRE dividir por 4.
- * Si Chronic = 0 → ratio = null (se muestra "Sin datos" en la UI).
- */
+//
+// Calcula ACS para un jugador en una semana y ano determinados.
+//
+// FÓRMULA EXACTA (sin excepciones):
+//   Carga aguda = valor de S_actual
+//   Carga cronica = (S_actual + S_n-1 + S_n-2 + S_n-3) / 4
+//   Ratio  = Acute / Chronic
+//
+// Si una semana no existe en la DB -> su valor es 0.
+// SIEMPRE dividir por 4.
+// Si Chronic = 0 -> ratio = null (se muestra "Sin datos" en la UI).
+//
 export async function computePlayerACWR(
   playerId: string,
   playerName: string,
@@ -157,7 +159,7 @@ export async function computePlayerACWR(
 ): Promise<PlayerAcwr> {
   const { slots, foundCount } = await getWeeklyStats4Slots(playerId, year, week);
 
-  // Check if player has ANY weekly_stat for the queried week
+  // Verificar si el jugador tiene datos en la semana consultada
   const currentSlot = slots[0]; // S_actual
   const currentWeekHasData = foundCount > 0 && (
     currentSlot.totalDistance > 0 ||
@@ -165,7 +167,7 @@ export async function computePlayerACWR(
     currentSlot.mechanicalImpacts > 0
   );
 
-  // If current week has NO data → all null (no ratio to show)
+  // Si la semana actual no tiene datos, no se calcula ratio.
   if (!currentWeekHasData) {
     return {
       playerId,
@@ -199,14 +201,14 @@ export async function computePlayerACWR(
     };
   }
 
-  // ─── CÁLCULO ACWR ───────────────────────────────────────────────
-  // Acute = valor de la semana actual (slot[0])
+  // Calculo ACS
+  // Carga aguda = valor de la semana actual.
   const acuteDistance = currentSlot.totalDistance;
   const acuteHighVelocity = currentSlot.highVelocity;
   const acuteMechImpacts = currentSlot.mechanicalImpacts;
 
-  // Chronic = (S_actual + S_n-1 + S_n-2 + S_n-3) / 4
-  // SIEMPRE /4. Semanas sin datos = 0 (ya están como 0 en slots[]).
+  // Carga cronica = promedio fijo de cuatro semanas.
+  // Siempre se divide por 4. Las semanas sin datos ya estan como cero.
   const chronicDistance28 =
     (slots[0].totalDistance + slots[1].totalDistance + slots[2].totalDistance + slots[3].totalDistance) / 4;
   const chronicHighVelocity28 =
@@ -214,8 +216,8 @@ export async function computePlayerACWR(
   const chronicMechImpacts28 =
     (slots[0].mechanicalImpacts + slots[1].mechanicalImpacts + slots[2].mechanicalImpacts + slots[3].mechanicalImpacts) / 4;
 
-  // Ratio = Acute / Chronic
-  // Si Chronic = 0 → null (NaN/Infinity protection)
+  // Ratio = carga aguda / carga cronica.
+  // Si la carga cronica es cero, se retorna null.
   const computeRatio = (acute: number, chronic: number): number | null => {
     if (chronic === 0) return null;
     const ratio = acute / chronic;
@@ -232,7 +234,7 @@ export async function computePlayerACWR(
   const riskMechImpacts = classifyRisk(ratioMechImpacts28);
   const overallRisk = worstRisk([riskDistance, riskHighVelocity, riskMechImpacts]);
 
-  // ─── CÁLCULO ACWR 21 DÍAS ───────────────────────────────────────────────
+  // CÁLCULO ACWR 21 DÍAS
   const chronicDistance21 = (slots[0].totalDistance + slots[1].totalDistance + slots[2].totalDistance) / 3;
   const chronicHighVelocity21 = (slots[0].highVelocity + slots[1].highVelocity + slots[2].highVelocity) / 3;
   const chronicMechImpacts21 = (slots[0].mechanicalImpacts + slots[1].mechanicalImpacts + slots[2].mechanicalImpacts) / 3;
@@ -282,14 +284,18 @@ export async function computePlayerACWR(
   };
 }
 
-/**
- * Compute ACWR for ALL players for a given week/year.
- */
+//
+// Calcula ACS para todos los jugadores en una semana y ano determinados.
+//
 export async function computeAllPlayersACWR(
   year: number,
   week: number,
+  squad: Squad,
 ): Promise<PlayerAcwr[]> {
-  const players = await prisma.player.findMany({ orderBy: { name: "asc" } });
+  const players = await prisma.player.findMany({
+    where: { squad },
+    orderBy: { name: "asc" },
+  });
 
   const results = await Promise.all(
     players.map((p) =>
@@ -300,13 +306,14 @@ export async function computeAllPlayersACWR(
   return results;
 }
 
-/**
- * Get available weeks (year/week pairs) that have weekly_stats data.
- */
-export async function getAvailableWeeks(): Promise<
+//
+// Obtiene las semanas disponibles con estadisticas cargadas.
+//
+export async function getAvailableWeeks(squad: Squad): Promise<
   { year: number; weekNumber: number }[]
 > {
   const raw = await prisma.weeklyStat.findMany({
+    where: { player: { squad } },
     select: { year: true, weekNumber: true },
     distinct: ["year", "weekNumber"],
     orderBy: [{ year: "desc" }, { weekNumber: "desc" }],

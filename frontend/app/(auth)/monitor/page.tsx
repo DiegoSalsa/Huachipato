@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
@@ -29,7 +29,7 @@ interface PlayerAcwr {
   riskMechImpacts: AcwrRisk | null;
   overallRisk: AcwrRisk | null;
 
-  // 21 days metrics
+  // Metricas de 21 dias
   ratioDistance21: number | null;
   ratioHighVelocity21: number | null;
   ratioMechImpacts21: number | null;
@@ -48,7 +48,7 @@ interface AcwrResponse {
   availableWeeks: { year: number; weekNumber: number }[];
 }
 
-const positionLabels: Record<string, string> = {
+const positionEtiquetas: Record<string, string> = {
   PORTERO: "Portero",
   DEFENSA: "Defensa",
   MEDIOCAMPISTA: "Mediocampista",
@@ -65,7 +65,7 @@ const filterButtons = [
 
 function RatioCell({ ratio, risk }: { ratio: number | null; risk: AcwrRisk | null }) {
   if (ratio === null) {
-    return <span className="text-slate-400">—</span>;
+    return <span className="text-slate-400">-</span>;
   }
 
   const config = risk ? riskConfig[risk] : null;
@@ -152,7 +152,7 @@ export default function MonitorPage() {
   return (
     <RoleGuard allowedRoles={["gps", "admin"]}>
     <div className="flex flex-col bg-white min-h-full">
-        {/* Header */}
+        {/* Encabezado */}
         <header className="border-b border-slate-200 bg-white px-4 py-5 md:px-8">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
@@ -165,7 +165,7 @@ export default function MonitorPage() {
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-3 w-full md:w-auto mt-2 md:mt-0">
-              {/* Week Selector */}
+              {/* Selector de semana */}
               {data && data.availableWeeks.length > 0 && (
                 <div className="relative">
                   <select
@@ -184,7 +184,7 @@ export default function MonitorPage() {
                   </span>
                 </div>
               )}
-              {/* Period Selector */}
+              {/* Selector de periodo */}
               <div className="relative">
                 <select
                   value={period}
@@ -222,7 +222,7 @@ export default function MonitorPage() {
         </header>
 
         <div className="space-y-6 p-4 md:p-8 overflow-hidden">
-          {/* KPI Cards */}
+          {/* Tarjetas de indicadores */}
           <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-5">
             <div className="rounded-2xl border border-slate-200 p-4">
               <p className="text-xs font-bold uppercase tracking-widest text-slate-400">
@@ -256,7 +256,7 @@ export default function MonitorPage() {
             </div>
           </section>
 
-          {/* Filter Buttons */}
+          {/* Botones de filtro */}
           <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
             {filterButtons.map((f) => (
               <button
@@ -274,7 +274,7 @@ export default function MonitorPage() {
             ))}
           </div>
 
-          {/* ACWR Table */}
+          {/* Tabla ACS */}
           {loading ? (
             <HuachipatoLoader />
           ) : players.length === 0 ? (
@@ -296,7 +296,7 @@ export default function MonitorPage() {
                 </p>
               </div>
 
-              {/* Desktop Table */}
+              {/* Tabla de escritorio */}
               <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-left text-sm">
                   <thead className="border-b border-slate-100 bg-slate-50 text-xs font-bold uppercase tracking-wide text-slate-600">
@@ -325,12 +325,12 @@ export default function MonitorPage() {
                           </Link>
                         </td>
                         <td className="px-5 py-3.5 text-slate-600">
-                          {positionLabels[player.position] ?? player.position}
+                          {positionEtiquetas[player.position] ?? player.position}
                         </td>
                         <td className="px-5 py-3.5 text-right font-medium text-slate-700">
                           {player.currentWeek
                             ? `${(player.currentWeek.totalDistance / 1000).toFixed(1)} km`
-                            : "—"}
+                            : "-"}
                         </td>
                         <td className="px-5 py-3.5 text-center">
                           <RatioCell ratio={period === "28" ? player.ratioDistance28 : player.ratioDistance21} risk={period === "28" ? player.riskDistance : player.riskDistance21} />
@@ -350,7 +350,7 @@ export default function MonitorPage() {
                 </table>
               </div>
 
-              {/* Mobile Card View */}
+              {/* Vista movil en tarjetas */}
               <div className="md:hidden divide-y divide-slate-100">
                 {filtered.map((player) => (
                   <Link
@@ -361,7 +361,7 @@ export default function MonitorPage() {
                     <div className="flex items-center justify-between mb-3">
                       <div>
                         <p className="font-semibold text-slate-900">{player.playerName}</p>
-                        <p className="text-xs text-slate-500">{positionLabels[player.position] ?? player.position}</p>
+                        <p className="text-xs text-slate-500">{positionEtiquetas[player.position] ?? player.position}</p>
                       </div>
                       <AcwrBadge risk={getRisk(player)} />
                     </div>
@@ -369,7 +369,7 @@ export default function MonitorPage() {
                       <div className="flex justify-between">
                         <span className="text-slate-400 font-medium">Dist. Semanal</span>
                         <span className="font-bold text-slate-700">
-                          {player.currentWeek ? `${(player.currentWeek.totalDistance / 1000).toFixed(1)} km` : "—"}
+                          {player.currentWeek ? `${(player.currentWeek.totalDistance / 1000).toFixed(1)} km` : "-"}
                         </span>
                       </div>
                       <div className="flex justify-between">
@@ -391,7 +391,7 @@ export default function MonitorPage() {
             </div>
           )}
 
-          {/* Legend */}
+          {/* Leyenda */}
           <div className="rounded-xl bg-slate-50 border border-slate-200 p-4">
             <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-3">
               Guía de Semáforo ACS
@@ -399,19 +399,19 @@ export default function MonitorPage() {
             <div className="flex flex-wrap gap-4">
               <div className="flex items-center gap-2">
                 <span className="size-3 rounded-full bg-sky-500" />
-                <span className="text-xs font-medium text-slate-600">{"< 0.80 — Bajo (subentrenamiento)"}</span>
+                <span className="text-xs font-medium text-slate-600">{"< 0.80 - Bajo (subentrenamiento)"}</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="size-3 rounded-full bg-emerald-500" />
-                <span className="text-xs font-medium text-slate-600">0.80 – 1.30 — Óptimo</span>
+                <span className="text-xs font-medium text-slate-600">0.80 - 1.30 - Óptimo</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="size-3 rounded-full bg-amber-500" />
-                <span className="text-xs font-medium text-slate-600">1.31 – 1.50 — Cuidado</span>
+                <span className="text-xs font-medium text-slate-600">1.31 - 1.50 - Cuidado</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="size-3 rounded-full bg-rose-500" />
-                <span className="text-xs font-medium text-slate-600">{"> 1.50 — Alto Riesgo (sobrecarga)"}</span>
+                <span className="text-xs font-medium text-slate-600">{"> 1.50 - Alto Riesgo (sobrecarga)"}</span>
               </div>
             </div>
           </div>

@@ -1,9 +1,13 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getRequestContext, unauthorized } from "@/lib/server-auth";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const context = await getRequestContext(request, ["medico", "admin"]);
+    if (!context) return unauthorized();
     const players = await prisma.player.findMany({
+      where: { squad: context.squad },
       include: {
         injuries: {
           orderBy: { dateOfInjury: "desc" },

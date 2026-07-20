@@ -1,14 +1,15 @@
-import { prisma } from "@/lib/prisma";
+﻿import { prisma } from "@/lib/prisma";
 import { getISOWeek } from "@/lib/services/weekly-aggregator";
+import type { Squad } from "@/lib/squads";
 
-/**
- * Daily / Weekly Overview Service
- *
- * Returns two views for a given date:
- *   1. "Today" — Per-player metrics for that specific date (from gps_daily_reports)
- *   2. "This Week" — Per-player accumulated metrics for the ISO week containing that date
- *      (sum of daily reports Mon→Sun, NOT the ACWR calculation)
- */
+//
+// Servicio de resumen diario y semanal
+//
+// Returns two views for a given date:
+//   1. "Today" - Per-player metrics for that specific date (from gps_daily_reports)
+//   2. "This Week" - Per-player accumulated metrics for the ISO week containing that date
+//      (sum of daily reports Mon->Sun, NOT the ACWR calculation)
+//
 
 export interface PlayerDailyMetrics {
   playerId: string;
@@ -45,9 +46,9 @@ export interface DailyWeeklyOverview {
   weekly: PlayerWeeklyMetrics[];
 }
 
-/**
- * Get the Monday and Sunday of the ISO week containing the given date.
- */
+//
+// Get the Monday and Sunday of the ISO week containing the given date.
+//
 function getWeekRange(date: Date): { monday: Date; sunday: Date } {
   const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
   const dayOfWeek = d.getUTCDay() || 7; // Sunday=7
@@ -60,11 +61,12 @@ function getWeekRange(date: Date): { monday: Date; sunday: Date } {
   return { monday, sunday };
 }
 
-/**
- * Fetch the daily + weekly overview for a given date.
- */
+//
+// Fetch the daily + weekly overview for a given date.
+//
 export async function getDailyWeeklyOverview(
   targetDate: Date,
+  squad: Squad,
 ): Promise<DailyWeeklyOverview> {
   const { year, week: weekNumber } = getISOWeek(targetDate);
   const { monday, sunday } = getWeekRange(targetDate);
@@ -74,9 +76,9 @@ export async function getDailyWeeklyOverview(
   const dayEnd = new Date(dayStart);
   dayEnd.setUTCHours(23, 59, 59, 999);
 
-  // ─── 1. Today's data ──────────────────────────────────────────
+  // 1. Today's data
   const dailyReports = await prisma.gpsDailyReport.findMany({
-    where: { date: { gte: dayStart, lte: dayEnd } },
+    where: { date: { gte: dayStart, lte: dayEnd }, player: { squad } },
     include: { player: true },
     orderBy: { player: { name: "asc" } },
   });
@@ -84,7 +86,7 @@ export async function getDailyWeeklyOverview(
   // Count sessions per player for this day
   const sessionCounts = await prisma.gpsDailySession.groupBy({
     by: ["playerId"],
-    where: { date: { gte: dayStart, lte: dayEnd } },
+    where: { date: { gte: dayStart, lte: dayEnd }, player: { squad } },
     _count: { id: true },
   });
   const sessionMap = new Map(sessionCounts.map((s) => [s.playerId, s._count.id]));
@@ -102,10 +104,11 @@ export async function getDailyWeeklyOverview(
     sessionsCount: sessionMap.get(r.playerId) ?? 1,
   }));
 
-  // ─── 2. This week's accumulated data ──────────────────────────
+  // 2. This week's accumulated data
   const weeklyReports = await prisma.gpsDailyReport.findMany({
     where: {
       date: { gte: monday, lte: sunday },
+      player: { squad },
     },
     include: { player: true },
   });
@@ -164,7 +167,7 @@ export async function getDailyWeeklyOverview(
     }))
     .sort((a, b) => a.playerName.localeCompare(b.playerName));
 
-  // Week label: "Lun 19 May – Dom 25 May"
+  // Etiqueta de semana: "Lun 19 May - Dom 25 May"
   const fmtShort = (d: Date) =>
     d.toLocaleDateString("es-CL", {
       weekday: "short",
@@ -172,7 +175,7 @@ export async function getDailyWeeklyOverview(
       month: "short",
       timeZone: "UTC",
     });
-  const weekLabel = `${fmtShort(monday)} – ${fmtShort(sunday)}`;
+  const weekLabel = `${fmtShort(monday)} - ${fmtShort(sunday)}`;
 
   return {
     date: dayStart.toISOString(),

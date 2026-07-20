@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
@@ -19,7 +19,7 @@ interface Player {
   }[];
 }
 
-const positionLabels: Record<string, string> = {
+const positionEtiquetas: Record<string, string> = {
   PORTERO: "Portero",
   DEFENSA: "Defensa",
   MEDIOCAMPISTA: "Mediocampista",
@@ -92,7 +92,7 @@ export default function JugadoresPage() {
           <div>
             <h2 className="text-xl font-bold text-slate-900">Jugadores</h2>
             <p className="text-xs text-slate-500">
-              Plantel — {players.length} jugadores registrados
+              Plantel - {players.length} jugadores registrados
             </p>
           </div>
           {canCreate && (
@@ -132,7 +132,7 @@ export default function JugadoresPage() {
             </div>
           ) : (
             <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
-              {/* Desktop Table */}
+              {/* Tabla de escritorio */}
               <div className="hidden md:block overflow-x-auto w-full">
                 <table className="w-full text-left whitespace-nowrap">
                 <thead className="bg-slate-50">
@@ -175,20 +175,20 @@ export default function JugadoresPage() {
                         </td>
                         <td className="px-6 py-4 text-sm text-slate-600">
                           <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold">
-                            {positionLabels[player.position] ?? player.position}
+                            {positionEtiquetas[player.position] ?? player.position}
                           </span>
                         </td>
                         <td className="px-6 py-4 text-sm text-slate-600 text-right font-medium">
-                          {stat ? `${(stat.totalDistance / 1000).toFixed(1)} km` : "—"}
+                          {stat ? `${(stat.totalDistance / 1000).toFixed(1)} km` : "-"}
                         </td>
                         <td className="px-6 py-4 text-sm text-slate-600 text-right">
-                          {stat ? `${stat.highVelocity.toLocaleString()} m` : "—"}
+                          {stat ? `${stat.highVelocity.toLocaleString()} m` : "-"}
                         </td>
                         <td className="px-6 py-4 text-sm text-slate-600 text-right">
-                          {stat ? stat.mechanicalImpacts : "—"}
+                          {stat ? stat.mechanicalImpacts : "-"}
                         </td>
                         <td className="px-6 py-4 text-xs text-slate-500">
-                          {stat ? `S${stat.weekNumber} · ${stat.year}` : "—"}
+                          {stat ? `S${stat.weekNumber} · ${stat.year}` : "-"}
                         </td>
                       </tr>
                     );
@@ -197,7 +197,7 @@ export default function JugadoresPage() {
               </table>
               </div>
 
-              {/* Mobile Card View */}
+              {/* Vista movil en tarjetas */}
               <div className="md:hidden divide-y divide-slate-100">
                 {players.map((player) => {
                   const stat = player.weeklyStats[0];
@@ -211,7 +211,7 @@ export default function JugadoresPage() {
                         <div>
                           <p className="font-semibold text-slate-900 text-sm">{player.name}</p>
                           <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600 mt-0.5">
-                            {positionLabels[player.position] ?? player.position}
+                            {positionEtiquetas[player.position] ?? player.position}
                           </span>
                         </div>
                         {stat && (
@@ -224,19 +224,19 @@ export default function JugadoresPage() {
                         <div className="text-center rounded-lg bg-slate-50 p-2">
                           <p className="text-[10px] font-bold uppercase text-slate-400">Dist.</p>
                           <p className="text-sm font-black text-slate-800">
-                            {stat ? `${(stat.totalDistance / 1000).toFixed(1)}km` : "—"}
+                            {stat ? `${(stat.totalDistance / 1000).toFixed(1)}km` : "-"}
                           </p>
                         </div>
                         <div className="text-center rounded-lg bg-slate-50 p-2">
                           <p className="text-[10px] font-bold uppercase text-slate-400">Alta Vel.</p>
                           <p className="text-sm font-black text-slate-800">
-                            {stat ? `${stat.highVelocity.toLocaleString()}m` : "—"}
+                            {stat ? `${stat.highVelocity.toLocaleString()}m` : "-"}
                           </p>
                         </div>
                         <div className="text-center rounded-lg bg-slate-50 p-2">
                           <p className="text-[10px] font-bold uppercase text-slate-400">Impactos</p>
                           <p className="text-sm font-black text-slate-800">
-                            {stat ? stat.mechanicalImpacts : "—"}
+                            {stat ? stat.mechanicalImpacts : "-"}
                           </p>
                         </div>
                       </div>
@@ -248,7 +248,7 @@ export default function JugadoresPage() {
           )}
         </div>
 
-        {/* Create Player Modal */}
+        {/* Modal para crear jugador */}
         {showModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
             <div className="mx-4 w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState, useCallback, useMemo, use, useRef } from "react";
 import Image from "next/image";
@@ -193,7 +193,7 @@ export default function JugadorPerfilPage({ params }: { params: Promise<{ id: st
     reader.readAsDataURL(file);
   };
 
-  const positionLabels: Record<string, string> = {
+  const positionEtiquetas: Record<string, string> = {
     PORTERO: "Portero",
     DEFENSA: "Defensa",
     MEDIOCAMPISTA: "Mediocampista",
@@ -224,7 +224,7 @@ export default function JugadorPerfilPage({ params }: { params: Promise<{ id: st
             </Link>
             
             <div className="rounded-3xl border border-slate-200 bg-gradient-to-r from-slate-50 to-white p-5">
-              {/* Mobile: stack vertically. Desktop: horizontal grid */}
+              {/* En movil se ordena verticalmente; en escritorio se usa grilla horizontal */}
               <div className="flex flex-col gap-5 md:grid md:grid-cols-[auto_1fr_auto] md:items-center">
                 <div 
                   className="relative h-20 w-20 md:h-24 md:w-24 overflow-hidden rounded-2xl border border-slate-200 bg-[#0085CB]/10 flex items-center justify-center cursor-pointer group shrink-0 mx-auto md:mx-0"
@@ -273,12 +273,12 @@ export default function JugadorPerfilPage({ params }: { params: Promise<{ id: st
                               setPlayer({ ...player, position: newPos });
                             }
                           } catch {
-                            // silently fail
+                            // Ignorar error sin interrumpir la interfaz
                           }
                         }}
                         className="appearance-none rounded-full border border-slate-200 bg-white pl-3 pr-7 py-1 text-xs font-semibold text-slate-700 outline-none cursor-pointer hover:border-[#0085CB] focus:border-[#0085CB] focus:ring-2 focus:ring-[#0085CB]/20 transition-all"
                       >
-                        {Object.entries(positionLabels).map(([key, label]) => (
+                        {Object.entries(positionEtiquetas).map(([key, label]) => (
                           <option key={key} value={key}>{label}</option>
                         ))}
                       </select>

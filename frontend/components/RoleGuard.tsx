@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useAuth, UserRole } from '@/components/AuthContext';
 import Link from 'next/link';

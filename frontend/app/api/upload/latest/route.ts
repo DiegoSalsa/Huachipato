@@ -1,15 +1,19 @@
-import { prisma } from "@/lib/prisma";
-import { NextResponse } from "next/server";
+﻿import { prisma } from "@/lib/prisma";
+import { NextRequest, NextResponse } from "next/server";
+import { getRequestContext, unauthorized } from "@/lib/server-auth";
 
-/**
- * GET /api/upload/latest
- *
- * Returns info about the most recent daily upload from the database.
- */
-export async function GET() {
+//
+// GET /api/upload/latest
+//
+// Returns info about the most recent daily upload from the database.
+//
+export async function GET(request: NextRequest) {
   try {
-    // Get the most recent session by created_at
+    const context = await getRequestContext(request);
+    if (!context) return unauthorized();
+    // Obtener la sesion mas reciente
     const latestSession = await prisma.gpsDailySession.findFirst({
+      where: { player: { squad: context.squad } },
       orderBy: { createdAt: "desc" },
       select: {
         date: true,
@@ -19,8 +23,9 @@ export async function GET() {
     });
 
     if (!latestSession) {
-      // Fallback: check gps_daily_reports if no sessions exist
+      // Si no hay sesiones, consultar reportes diarios
       const latestReport = await prisma.gpsDailyReport.findFirst({
+        where: { player: { squad: context.squad } },
         orderBy: { createdAt: "desc" },
         select: { date: true, createdAt: true },
       });
@@ -30,7 +35,7 @@ export async function GET() {
       }
 
       const count = await prisma.gpsDailyReport.count({
-        where: { date: latestReport.date },
+        where: { date: latestReport.date, player: { squad: context.squad } },
       });
 
       return NextResponse.json({
@@ -43,11 +48,12 @@ export async function GET() {
       });
     }
 
-    // Count how many players were in this session
+    // Contar jugadores incluidos en la sesion
     const count = await prisma.gpsDailySession.count({
       where: {
         date: latestSession.date,
         sessionNumber: latestSession.sessionNumber,
+        player: { squad: context.squad },
       },
     });
 

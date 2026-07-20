@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
@@ -30,7 +30,7 @@ interface AcwrPlayer {
   currentWeek: { totalDistance: number } | null;
 }
 
-// ─── Date formatting ────────────────────────────────────────────────
+// Formato de fecha
 
 function getTodayFormatted(): string {
   return new Date().toLocaleDateString("es-CL", {
@@ -41,7 +41,7 @@ function getTodayFormatted(): string {
   });
 }
 
-// ─── Quick Action Card ──────────────────────────────────────────────
+// Tarjeta de accion rapida
 
 function QuickAction({
   href,
@@ -86,7 +86,7 @@ function QuickAction({
   );
 }
 
-// ─── KPI Stat ───────────────────────────────────────────────────────
+// Indicador KPI
 
 function KpiCard({
   icon,
@@ -121,7 +121,7 @@ function KpiCard({
   );
 }
 
-// ─── Injury Row (Desktop + Mobile) ──────────────────────────────────
+// Fila de lesion para escritorio y movil
 
 function InjuryRow({ injury, severityColors }: {
   injury: { id: string; playerName: string; injuryType: string; severity: string; dateOfInjury: string; estimatedRecoveryDays: number };
@@ -149,7 +149,7 @@ function InjuryRow({ injury, severityColors }: {
   );
 }
 
-// ─── Main Component ─────────────────────────────────────────────────
+// Componente principal
 
 export default function WelcomePage() {
   const { user, hasRole } = useAuth();
@@ -190,7 +190,7 @@ export default function WelcomePage() {
     if (user) fetchData();
   }, [user, hasRole]);
 
-  // ─── Derived Data ─────────────────────────────────────────────────
+  // Datos calculados
 
   const injuryStats = useMemo(() => {
     const injured = injuryData.filter((p) =>
@@ -229,7 +229,7 @@ export default function WelcomePage() {
     Grave: "bg-red-100 text-red-800 border-red-200",
   };
 
-  const positionLabels: Record<string, string> = {
+  const positionEtiquetas: Record<string, string> = {
     PORTERO: "Portero",
     DEFENSA: "Defensa",
     MEDIOCAMPISTA: "Mediocampista",
@@ -240,7 +240,7 @@ export default function WelcomePage() {
 
   return (
     <div className="flex flex-col bg-white min-h-full">
-      {/* ─── Hero Header ─────────────────────────────────────────── */}
+      {/* Encabezado principal */}
       <header className="border-b border-slate-200 bg-gradient-to-r from-[#0085CB]/5 via-white to-transparent px-4 py-6 md:px-8 md:py-8">
         <p className="text-xs md:text-sm font-bold text-[#0085CB] uppercase tracking-widest mb-1">
           {roleGreeting[user.role] ?? "Bienvenido"}
@@ -253,25 +253,23 @@ export default function WelcomePage() {
         </p>
       </header>
 
-      {/* ─── Content ─────────────────────────────────────────────── */}
+      {/* Contenido */}
       <div className="flex-1 p-4 md:p-8 space-y-6 md:space-y-8 pb-20 md:pb-8">
         {loading ? (
           <HuachipatoLoader />
         ) : (
           <>
-            {/* ══════════════════════════════════════════════════════
-                MÉDICO WELCOME
-               ══════════════════════════════════════════════════════ */}
+            {/* Vista de bienvenida medica */}
             {hasRole("medico") && (
               <div className="space-y-6 md:space-y-8">
-                {/* KPIs */}
+                {/* Indicadores */}
                 <div className="grid grid-cols-3 gap-3 md:gap-4">
                   <KpiCard icon="personal_injury" label="Lesionados" value={injuryStats.injuredCount} accent="rose" />
                   <KpiCard icon="groups" label="Plantel" value={injuryStats.totalPlayers} accent="blue" />
                   <KpiCard icon="check_circle" label="Sanos" value={injuryStats.totalPlayers - injuryStats.injuredCount} accent="emerald" />
                 </div>
 
-                {/* Recent Injuries */}
+                {/* Lesiones recientes */}
                 {injuryStats.recentInjuries.length > 0 && (
                   <div className="rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
                     <div className="bg-slate-50 px-4 md:px-6 py-3 md:py-4 border-b border-slate-100">
@@ -295,7 +293,7 @@ export default function WelcomePage() {
                   </div>
                 )}
 
-                {/* Quick Actions */}
+                {/* Acciones rapidas */}
                 <div className="grid grid-cols-2 gap-3 md:gap-4">
                   <QuickAction href="/medico" icon="medical_services" label="Panel Médico" description="Fichas clínicas y lesiones" variant="rose" />
                   <QuickAction href="/jugadores" icon="groups" label="Ver Jugadores" description="Consultar el plantel" variant="blue" />
@@ -303,12 +301,10 @@ export default function WelcomePage() {
               </div>
             )}
 
-            {/* ══════════════════════════════════════════════════════
-                GPS WELCOME
-               ══════════════════════════════════════════════════════ */}
+            {/* Vista de bienvenida GPS */}
             {hasRole("gps") && (
               <div className="space-y-6 md:space-y-8">
-                {/* KPIs */}
+                {/* Indicadores */}
                 <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
                   <KpiCard icon="groups" label="Jugadores" value={acwrStats.total} sub="registrados" accent="blue" />
                   <KpiCard icon="check_circle" label="Óptimo" value={acwrStats.optimal} sub="en sweet spot" accent="emerald" />
@@ -319,14 +315,14 @@ export default function WelcomePage() {
                     value={
                       acwrStats.total > 0
                         ? `${(acwrData.reduce((sum, p) => sum + (p.currentWeek?.totalDistance ?? 0), 0) / acwrStats.total / 1000).toFixed(1)} km`
-                        : "—"
+                        : "-"
                     }
                     sub="semanal por jugador"
                     accent="amber"
                   />
                 </div>
 
-                {/* Top Players */}
+                {/* Jugadores destacados */}
                 {acwrStats.topPlayers.length > 0 && (
                   <div className="rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
                     <div className="bg-slate-50 px-4 md:px-6 py-3 md:py-4 border-b border-slate-100">
@@ -348,7 +344,7 @@ export default function WelcomePage() {
                             </div>
                             <div className="min-w-0">
                               <p className="font-semibold text-slate-900 text-sm truncate">{player.playerName}</p>
-                              <p className="text-[10px] md:text-xs text-slate-500">{positionLabels[player.position] ?? player.position}</p>
+                              <p className="text-[10px] md:text-xs text-slate-500">{positionEtiquetas[player.position] ?? player.position}</p>
                             </div>
                           </div>
                           <div className="flex items-center gap-2 md:gap-3 shrink-0">
@@ -370,7 +366,7 @@ export default function WelcomePage() {
                   </div>
                 )}
 
-                {/* Quick Actions */}
+                {/* Acciones rapidas */}
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
                   <QuickAction href="/monitor" icon="monitoring" label="Monitor ACS" description="Tabla completa de cargas" variant="blue" />
                   <QuickAction href="/ingesta" icon="cloud_upload" label="Subir Datos" description="Importar CSV/Excel GPS" variant="emerald" />
@@ -379,12 +375,10 @@ export default function WelcomePage() {
               </div>
             )}
 
-            {/* ══════════════════════════════════════════════════════
-                ADMIN WELCOME
-               ══════════════════════════════════════════════════════ */}
+            {/* Vista de bienvenida administrador */}
             {hasRole("admin") && (
               <div className="space-y-6 md:space-y-8">
-                {/* KPIs */}
+                {/* Indicadores */}
                 <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
                   <KpiCard icon="groups" label="Jugadores" value={acwrStats.total || injuryStats.totalPlayers} sub="en el plantel" accent="blue" />
                   <KpiCard icon="personal_injury" label="Lesionados" value={injuryStats.injuredCount} sub="activos" accent="rose" />
@@ -392,9 +386,9 @@ export default function WelcomePage() {
                   <KpiCard icon="check_circle" label="ACS Óptimo" value={acwrStats.optimal} sub="en sweet spot" accent="emerald" />
                 </div>
 
-                {/* Two columns: Injuries + ACS Risk */}
+                {/* Columnas de lesiones y riesgo ACS */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                  {/* Injuries */}
+                  {/* Lesiones */}
                   <div className="rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
                     <div className="bg-slate-50 px-4 md:px-5 py-3 border-b border-slate-100">
                       <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
@@ -431,7 +425,7 @@ export default function WelcomePage() {
                     </Link>
                   </div>
 
-                  {/* ACS Risk Overview */}
+                  {/* Resumen de riesgo ACS */}
                   <div className="rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
                     <div className="bg-slate-50 px-4 md:px-5 py-3 border-b border-slate-100">
                       <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
@@ -445,7 +439,7 @@ export default function WelcomePage() {
                           <div key={p.playerId} className="px-4 md:px-5 py-3 flex items-center justify-between gap-2 text-sm">
                             <div className="min-w-0 flex-1">
                               <p className="font-semibold text-slate-800 text-sm truncate">{p.playerName}</p>
-                              <p className="text-[10px] text-slate-400">{positionLabels[p.position] ?? p.position}</p>
+                              <p className="text-[10px] text-slate-400">{positionEtiquetas[p.position] ?? p.position}</p>
                             </div>
                             <AcwrBadge risk={p.overallRisk} />
                           </div>
@@ -467,7 +461,7 @@ export default function WelcomePage() {
                   </div>
                 </div>
 
-                {/* Quick Actions */}
+                {/* Acciones rapidas */}
                 <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
                   <QuickAction href="/monitor" icon="monitoring" label="Monitor ACS" description="Tabla de cargas" variant="blue" />
                   <QuickAction href="/medico" icon="medical_services" label="Panel Médico" description="Fichas clínicas" variant="rose" />

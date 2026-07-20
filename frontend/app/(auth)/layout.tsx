@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { ProtectedLayout } from '@/components/ProtectedLayout';
 import { AuthProvider } from '@/components/AuthContext';

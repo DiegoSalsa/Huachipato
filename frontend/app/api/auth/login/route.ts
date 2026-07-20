@@ -43,6 +43,7 @@ export async function POST(request: NextRequest) {
       userId: user.id,
       email: user.email,
       role: user.role,
+      squad: user.squad,
     });
 
     return NextResponse.json(
@@ -54,6 +55,7 @@ export async function POST(request: NextRequest) {
           email: user.email,
           name: user.name,
           role: user.role,
+          squad: user.squad,
         },
       },
       { status: 200 }

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -49,9 +49,9 @@ export default function LoginPage() {
 
   return (
     <main className="min-h-screen flex flex-col md:flex-row overflow-hidden">
-      {/* Left Section: Brand Impact (70% width) */}
+      {/* Seccion visual de marca */}
       <section className="hidden md:flex md:w-[70%] bg-[#006195] relative items-center justify-center overflow-hidden">
-        {/* Background Texture for Depth */}
+        {/* Textura de fondo */}
         <div className="absolute inset-0 opacity-10 pointer-events-none">
           <div
             className="absolute inset-0"
@@ -63,7 +63,7 @@ export default function LoginPage() {
           />
         </div>
 
-        {/* Core Brand Elements */}
+        {/* Elementos principales de marca */}
         <div className="relative z-10 flex flex-col items-center max-w-4xl px-12 text-center">
           <div className="mb-12">
             <img
@@ -81,9 +81,9 @@ export default function LoginPage() {
         </div>
       </section>
 
-      {/* Right Section: Form (30% width) */}
+      {/* Seccion del formulario */}
       <section className="w-full flex-1 md:flex-none md:w-[30%] bg-white flex flex-col justify-center px-8 md:px-12 py-12 relative shadow-[-24px_0_48px_rgba(13,28,46,0.04)] z-20">
-        {/* Mobile Logo Only */}
+        {/* Logo para vista movil */}
         <div className="md:hidden flex justify-center mb-12">
           <img
             alt="Huachipato Logo"
@@ -103,14 +103,14 @@ export default function LoginPage() {
           </header>
 
           <form className="space-y-6" onSubmit={handleSubmit}>
-            {/* Error Message */}
+            {/* Mensaje de error */}
             {error && (
               <div className="p-4 bg-error-container border border-error rounded-lg text-error text-sm">
                 {error}
               </div>
             )}
 
-            {/* Email Field */}
+            {/* Campo de correo */}
             <div className="space-y-2">
               <label
                 className="block text-xs font-bold text-on-surface-variant uppercase tracking-widest"
@@ -134,7 +134,7 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Password Field */}
+            {/* Campo de contrasena */}
             <div className="space-y-2">
               <label
                 className="block text-xs font-bold text-on-surface-variant uppercase tracking-widest"
@@ -167,7 +167,7 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Actions */}
+            {/* Acciones */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between py-2 gap-4">
               <label className="flex items-center gap-3 cursor-pointer group">
                 <div className="relative flex items-center">
@@ -190,7 +190,7 @@ export default function LoginPage() {
               </a>
             </div>
 
-            {/* Submit Button */}
+            {/* Boton de ingreso */}
             <button
               className="w-full py-4 px-6 bg-[#006195] text-white font-headline font-bold rounded-xl shadow-lg shadow-primary/20 hover:bg-primary-container active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               type="submit"
@@ -201,7 +201,7 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Footer/Support */}
+          {/* Pie de pagina y soporte */}
           <footer className="mt-16 pt-8 border-t border-surface-container-low">
             <p className="text-xs font-medium text-outline text-center">
               Acceso restringido para personal técnico y directivo de <br />

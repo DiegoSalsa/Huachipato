@@ -1,30 +1,33 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getRequestContext, unauthorized } from "@/lib/server-auth";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const context = await getRequestContext(request);
+    if (!context) return unauthorized();
     const resolvedParams = await params;
     const { id } = resolvedParams;
 
-    // Fetch player data
-    const player = await prisma.player.findUnique({
-      where: { id },
+    // Obtener datos del jugador
+    const player = await prisma.player.findFirst({
+      where: { id, squad: context.squad },
     });
 
     if (!player) {
       return NextResponse.json({ error: "Jugador no encontrado" }, { status: 404 });
     }
 
-    // Fetch all weekly stats for this player, ordered chronologically
+    // Obtener estadisticas semanales del jugador en orden cronologico
     const weeklyStats = await prisma.weeklyStat.findMany({
       where: { playerId: id },
       orderBy: [{ year: "asc" }, { weekNumber: "asc" }],
     });
 
-    // Build the history array
+    // Construir historial
     // We want to calculate acute and chronic values for each week where possible
     const history = [];
 
@@ -32,7 +35,7 @@ export async function GET(
       const current = weeklyStats[i];
       const weekLabel = `S${current.weekNumber}-${current.year.toString().slice(-2)}`;
 
-      // Calculate chronic (4 weeks). We need the last 4 weeks including current
+      // Calcular carga cronica de cuatro semanas incluyendo la actual
       let chronicDistance28 = 0;
       let chronicHighVelocity28 = 0;
       let chronicMechImpacts28 = 0;
@@ -53,7 +56,7 @@ export async function GET(
         curWeek--;
         if (curWeek < 1) {
           curYear--;
-          curWeek = 52; // Assuming 52 weeks
+          curWeek = 52; // Se consideran 52 semanas
         }
       }
 
@@ -108,6 +111,8 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const context = await getRequestContext(request, ["gps", "admin"]);
+    if (!context) return unauthorized();
     const { id } = await params;
     const body = await request.json();
     const { position } = body;
@@ -117,6 +122,14 @@ export async function PATCH(
         { error: "Posición inválida. Valores válidos: " + VALID_POSITIONS.join(", ") },
         { status: 400 }
       );
+    }
+
+    const existing = await prisma.player.findFirst({
+      where: { id, squad: context.squad },
+      select: { id: true },
+    });
+    if (!existing) {
+      return NextResponse.json({ error: "Jugador no encontrado" }, { status: 404 });
     }
 
     const updated = await prisma.player.update({

@@ -1,9 +1,10 @@
-"use client";
+﻿"use client";
 
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth, UserRole } from "@/components/AuthContext";
+import { SQUADS, SQUAD_LABELS, type Squad } from "@/lib/squads";
 
 interface NavItem {
   href: string;
@@ -22,7 +23,7 @@ const navItems: NavItem[] = [
   { href: "/admin/usuarios", icon: "admin_panel_settings", label: "Administrar Usuarios", roles: ["admin"] },
 ];
 
-const roleLabels: Record<UserRole, { label: string; color: string }> = {
+const roleEtiquetas: Record<UserRole, { label: string; color: string }> = {
   medico: { label: "Área Médica", color: "bg-emerald-500/20 text-emerald-300" },
   gps: { label: "Personal GPS", color: "bg-sky-500/20 text-sky-300" },
   admin: { label: "Administrador", color: "bg-amber-500/20 text-amber-300" },
@@ -30,7 +31,7 @@ const roleLabels: Record<UserRole, { label: string; color: string }> = {
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const { user, logout } = useAuth();
+  const { user, logout, activeSquad, canSwitchSquad, setActiveSquad } = useAuth();
 
   const userRole = user?.role as UserRole | undefined;
   const filteredItems = userRole
@@ -42,11 +43,11 @@ export default function Sidebar() {
     return pathname.startsWith(href);
   };
 
-  const roleInfo = userRole ? roleLabels[userRole] : null;
+  const roleInfo = userRole ? roleEtiquetas[userRole] : null;
 
   return (
     <>
-      {/* Desktop Sidebar */}
+      {/* Barra lateral de escritorio */}
       <aside className="hidden md:flex w-64 flex-shrink-0 bg-sidebar border-r border-white/10 flex-col text-white">
       {/* Logo */}
       <div className="p-6 flex items-center gap-3">
@@ -65,7 +66,31 @@ export default function Sidebar() {
         </div>
       </div>
 
-      {/* Navigation */}
+      {/* Navegacion */}
+      <div className="px-4 mb-2">
+        {canSwitchSquad ? (
+          <label className="block rounded-xl border border-white/15 bg-white/10 p-3">
+            <span className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-white/60">
+              Serie activa
+            </span>
+            <select
+              value={activeSquad ?? "PROFESIONAL"}
+              onChange={(event) => setActiveSquad(event.target.value as Squad)}
+              className="w-full rounded-lg border border-white/20 bg-[#07547b] px-2 py-2 text-xs font-bold text-white outline-none"
+              aria-label="Cambiar serie activa"
+            >
+              {SQUADS.map((squad) => (
+                <option key={squad} value={squad}>{SQUAD_LABELS[squad]}</option>
+              ))}
+            </select>
+          </label>
+        ) : activeSquad ? (
+          <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-white/50">Serie</p>
+            <p className="mt-0.5 text-xs font-bold text-white">{SQUAD_LABELS[activeSquad]}</p>
+          </div>
+        ) : null}
+      </div>
       <nav className="flex-1 px-4 space-y-1 mt-4">
         {filteredItems.map((item) => (
           <Link
@@ -85,7 +110,7 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      {/* Bottom - User Info & Logout */}
+      {/* Datos del usuario y cierre de sesion */}
       <div className="p-4 border-t border-white/10 space-y-3">
         {user && (
           <div className="px-3 py-2 text-white/80 text-xs">
@@ -110,8 +135,22 @@ export default function Sidebar() {
       </div>
       </aside>
 
-      {/* Mobile Bottom Nav */}
+      {/* Navegacion inferior movil */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-sidebar flex items-center justify-around p-2 z-50 border-t border-white/10" style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}>
+        <div className="absolute bottom-full right-2 mb-2 rounded-lg bg-[#07547b] px-2 py-1.5 text-white shadow-lg">
+          {canSwitchSquad ? (
+            <select
+              value={activeSquad ?? "PROFESIONAL"}
+              onChange={(event) => setActiveSquad(event.target.value as Squad)}
+              className="bg-transparent text-xs font-bold outline-none"
+              aria-label="Cambiar serie activa"
+            >
+              {SQUADS.map((squad) => <option className="bg-[#07547b]" key={squad} value={squad}>{SQUAD_LABELS[squad]}</option>)}
+            </select>
+          ) : activeSquad ? (
+            <span className="text-xs font-bold">{SQUAD_LABELS[activeSquad]}</span>
+          ) : null}
+        </div>
         {filteredItems.slice(0, 5).map((item) => (
           <Link
             key={item.href}

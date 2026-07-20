@@ -1,24 +1,27 @@
-import { processDailyCsvUpload } from "@/lib/api/daily-ingestion";
+﻿import { processDailyCsvUpload } from "@/lib/api/daily-ingestion";
 import { NextRequest, NextResponse } from "next/server";
+import { getRequestContext, unauthorized } from "@/lib/server-auth";
 
-/**
- * POST /api/upload-daily-csv
- *
- * Receives a CSV S-File (semicolon-delimited) from GPS devices
- * along with a date, and processes it into:
- *   gps_daily_sessions → gps_daily_reports → weekly_stats
- *
- * Body (multipart/form-data):
- *   - file: File  (required) — The CSV file
- *   - date: string (required) — ISO date string e.g. "2026-05-20"
- */
+//
+// POST /api/upload-daily-csv
+//
+// Receives a CSV S-File (semicolon-delimited) from GPS devices
+// along with a date, and processes it into:
+//   gps_daily_sessions -> gps_daily_reports -> weekly_stats
+//
+// Body (multipart/form-data):
+//   - file: File  (required) - The CSV file
+//   - date: string (required) - ISO date string por ejemplo "2026-05-20"
+//
 export async function POST(request: NextRequest) {
   try {
+    const context = await getRequestContext(request, ["gps"]);
+    if (!context) return unauthorized();
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
     const dateStr = formData.get("date") as string | null;
 
-    // ─── Validation ───────────────────────────────────────────
+    // Validation
     if (!file) {
       return NextResponse.json(
         { error: "No se proporcionó un archivo" },
@@ -42,9 +45,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ─── Process ──────────────────────────────────────────────
+    // Process
     const buffer = Buffer.from(await file.arrayBuffer());
-    const result = await processDailyCsvUpload(buffer, dateStr);
+    const result = await processDailyCsvUpload(buffer, dateStr, context.squad);
 
     return NextResponse.json(result);
   } catch (err) {

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import RoleGuard from "@/components/RoleGuard";
@@ -28,14 +28,14 @@ type ModalMode = null | "daily" | "weekly";
 
 const LAST_UPLOAD_KEY = "huachipato_last_upload";
 
-// Generate week options 1-53
+// Generar opciones de semanas 1 a 53
 const weekOptions = Array.from({ length: 53 }, (_, i) => i + 1);
 
 // Generate year options (current year ± 2)
 const currentYear = new Date().getFullYear();
 const yearOptions = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
 
-function getMappedValue(row: Record<string, unknown>, key: string): string {
+function getMappedValor(row: Record<string, unknown>, key: string): string {
   const aliases: Record<string, string[]> = {
     name: ["name"],
     totalDistance: ["totalDistance"],
@@ -52,7 +52,7 @@ function getMappedValue(row: Record<string, unknown>, key: string): string {
   for (const k of keys) {
     if (row[k] !== undefined) return String(row[k]);
   }
-  return "—";
+  return "-";
 }
 
 export default function IngestaPage() {
@@ -63,7 +63,7 @@ export default function IngestaPage() {
   const [dragOver, setDragOver] = useState(false);
   const [lastUpload, setLastUpload] = useState<LastUploadInfo | null>(null);
 
-  // Load last upload info from API (DB) on mount, fallback to localStorage
+  // Cargar informacion de la ultima subida desde API o almacenamiento local
   useEffect(() => {
     async function fetchLatest() {
       try {
@@ -73,11 +73,11 @@ export default function IngestaPage() {
         const res = await fetch("/api/upload/latest");
         const json = await res.json();
         if (json.latest) {
-          // If localStorage has a more recent upload (with filename), prefer it
+          // Si el almacenamiento local tiene una subida mas reciente, se usa esa informacion
           if (local && new Date(local.uploadedAt) >= new Date(json.latest.uploadedAt)) {
             setLastUpload(local);
           } else {
-            // Use DB data (no filename available)
+            // Usar datos de la base aunque no exista nombre de archivo
             setLastUpload({
               fileName: "",
               date: json.latest.date.split("T")[0],
@@ -99,12 +99,12 @@ export default function IngestaPage() {
     fetchLatest();
   }, []);
 
-  // Daily mode state
+  // Estado del modo diario
   const [reportDate, setReportDate] = useState(
     new Date().toISOString().split("T")[0],
   );
 
-  // Weekly mode state
+  // Estado del modo semanal
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [selectedWeek, setSelectedWeek] = useState(1);
 
@@ -139,7 +139,7 @@ export default function IngestaPage() {
           setError(data.error || "Error al procesar archivo");
         } else {
           setUploadResult(data);
-          // Save last upload info
+          // Guardar informacion de la ultima subida
           const info: LastUploadInfo = {
             fileName: file.name,
             date: data.mode === "daily" ? reportDate : `S${data.weekNumber} · ${data.year}`,
@@ -149,7 +149,7 @@ export default function IngestaPage() {
           };
           setLastUpload(info);
           try { localStorage.setItem(LAST_UPLOAD_KEY, JSON.stringify(info)); } catch { /* ignore */ }
-          setModalMode(null); // Close modal on success
+          setModalMode(null); // Cerrar modal al finalizar correctamente
         }
       } catch {
         setError("Error de conexión al subir archivo");
@@ -174,7 +174,7 @@ export default function IngestaPage() {
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (file) handleUpload(file);
-      // Reset input so same file can be re-selected
+      // Limpiar input para permitir seleccionar el mismo archivo
       e.target.value = "";
     },
     [handleUpload],
@@ -204,9 +204,9 @@ export default function IngestaPage() {
 
         <div className="p-4 md:p-10">
           <div className="mx-auto max-w-6xl space-y-8">
-            {/* Two Upload Buttons */}
+            {/* Botones de carga */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Daily Upload Card */}
+              {/* Tarjeta de carga diaria */}
               <button
                 onClick={() => openModal("daily")}
                 className="group relative overflow-hidden rounded-2xl border-2 border-[#0085CB]/20 bg-gradient-to-br from-[#0085CB]/5 to-white p-8 text-left transition-all hover:border-[#0085CB]/50 hover:shadow-lg hover:shadow-[#0085CB]/10"
@@ -235,7 +235,7 @@ export default function IngestaPage() {
                 </div>
               </button>
 
-              {/* Weekly Upload Card */}
+              {/* Tarjeta de carga semanal */}
               <button
                 onClick={() => openModal("weekly")}
                 className="group relative overflow-hidden rounded-2xl border-2 border-emerald-200/60 bg-gradient-to-br from-emerald-50/50 to-white p-8 text-left transition-all hover:border-emerald-300 hover:shadow-lg hover:shadow-emerald-100"
@@ -265,7 +265,7 @@ export default function IngestaPage() {
               </button>
             </div>
 
-            {/* Last Upload Info */}
+            {/* Informacion de ultima subida */}
             {lastUpload && (
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 flex items-center gap-4">
                 <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#0085CB]/10">
@@ -305,7 +305,7 @@ export default function IngestaPage() {
               </div>
             )}
 
-            {/* Success Result */}
+            {/* Resultado exitoso */}
             {uploadResult && (
               <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-6 animate-in fade-in">
                 <div className="flex items-center gap-3 mb-3">
@@ -313,7 +313,7 @@ export default function IngestaPage() {
                     check_circle
                   </span>
                   <h3 className="text-lg font-bold text-emerald-800">
-                    Ingesta Completada —{" "}
+                    Ingesta Completada -{" "}
                     {uploadResult.mode === "daily"
                       ? "Informe Diario"
                       : "Stats Semanal"}
@@ -360,7 +360,7 @@ export default function IngestaPage() {
               </div>
             )}
 
-            {/* Preview Table */}
+            {/* Tabla de vista previa */}
             {previewRows.length > 0 && (
               <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
                 <div className="border-b border-slate-100 p-5">
@@ -389,28 +389,28 @@ export default function IngestaPage() {
                       {previewRows.map((row, index) => (
                         <tr key={index}>
                           <td className="px-5 py-3 font-medium text-slate-900">
-                            {getMappedValue(row, "name")}
+                            {getMappedValor(row, "name")}
                           </td>
                           <td className="px-5 py-3">
-                            {getMappedValue(row, "totalDistance")}
+                            {getMappedValor(row, "totalDistance")}
                           </td>
                           <td className="px-5 py-3">
-                            {getMappedValue(row, "hsr")}
+                            {getMappedValor(row, "hsr")}
                           </td>
                           <td className="px-5 py-3">
-                            {getMappedValue(row, "sprintDistance")}
+                            {getMappedValor(row, "sprintDistance")}
                           </td>
                           <td className="px-5 py-3">
-                            {getMappedValue(row, "sprints")}
+                            {getMappedValor(row, "sprints")}
                           </td>
                           <td className="px-5 py-3">
-                            {getMappedValue(row, "accelerations")}
+                            {getMappedValor(row, "accelerations")}
                           </td>
                           <td className="px-5 py-3">
-                            {getMappedValue(row, "decelerations")}
+                            {getMappedValor(row, "decelerations")}
                           </td>
                           <td className="px-5 py-3">
-                            {getMappedValue(row, "maxSpeed")}
+                            {getMappedValor(row, "maxSpeed")}
                           </td>
                         </tr>
                       ))}
@@ -420,7 +420,7 @@ export default function IngestaPage() {
               </div>
             )}
 
-            {/* Expected Columns Guide */}
+            {/* Guia de columnas esperadas */}
             <div className="rounded-xl bg-slate-50 border border-slate-200 p-5">
               <h3 className="text-sm font-bold text-slate-700 mb-3">
                 Columnas esperadas del CSV
@@ -480,11 +480,11 @@ export default function IngestaPage() {
           </div>
         </div>
 
-        {/* ─── MODAL ────────────────────────────────────────────── */}
+        {/* Modal */}
         {modalMode && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
             <div className="mx-4 w-full max-w-xl rounded-2xl bg-white p-6 shadow-2xl">
-              {/* Modal Header */}
+              {/* Encabezado del modal */}
               <div className="flex items-center justify-between mb-5">
                 <div className="flex items-center gap-3">
                   <div
@@ -530,7 +530,7 @@ export default function IngestaPage() {
                 </button>
               </div>
 
-              {/* Modal Controls */}
+              {/* Controles del modal */}
               <div className="mb-5 space-y-4">
                 {modalMode === "daily" ? (
                   <div>
@@ -600,7 +600,7 @@ export default function IngestaPage() {
                 )}
               </div>
 
-              {/* Dropzone */}
+              {/* Zona de carga */}
               <div
                 className={`flex flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-10 text-center transition-all ${
                   dragOver
@@ -673,7 +673,7 @@ export default function IngestaPage() {
                 </p>
               </div>
 
-              {/* Error inside modal */}
+              {/* Error dentro del modal */}
               {error && (
                 <div className="mt-4 flex items-center gap-2 rounded-lg bg-rose-50 border border-rose-200 p-3">
                   <span className="material-symbols-outlined text-rose-500 text-lg">

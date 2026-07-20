@@ -14,7 +14,7 @@ export function ProtectedLayout({ children }: ProtectedLayoutProps) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Verificar si hay token en cookies
+    // Verificar token en cookies
     const tokenMatch = document.cookie.match(/(?:^|; )auth_token=([^;]*)/);
     const token = tokenMatch ? tokenMatch[1] : null;
 

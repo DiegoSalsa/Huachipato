@@ -1,19 +1,19 @@
-import "dotenv/config";
+﻿import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
-/**
- * Clean Seed — Huachipato ACWR System
- *
- * Deletes ALL data and resets the database to a clean state.
- * Ready for real data ingestion from CSV/Excel uploads.
- */
+//
+// Clean Seed - Huachipato ACWR System
+//
+// Deletes ALL data and resets the database to a clean state.
+// Ready for real data ingestion from CSV/Excel uploads.
+//
 async function main() {
   console.log("🧹 Limpiando base de datos huachipato3...\n");
 
-  // Delete in dependency order
+  // Eliminar datos segun dependencias
   const deletedWeekly = await prisma.weeklyStat.deleteMany();
   console.log(`  ✓ weekly_stats:          ${deletedWeekly.count} registros eliminados`);
 
@@ -29,7 +29,7 @@ async function main() {
   const deletedUsers = await prisma.user.deleteMany();
   console.log(`  ✓ users:             ${deletedUsers.count} registros eliminados`);
 
-  // Reset auto-increment sequences (PostgreSQL)
+  // Reiniciar secuencias autoincrementales (PostgreSQL)
   await prisma.$executeRawUnsafe(
     `ALTER SEQUENCE IF EXISTS gps_daily_reports_id_seq RESTART WITH 1;`,
   );
@@ -42,7 +42,7 @@ async function main() {
   
   console.log("\n  ✓ Secuencias de IDs reiniciadas");
 
-  // Create default admin user
+  // Crear usuario administrador por defecto
   console.log("\n📝 Creando usuario de prueba...\n");
   const salt = await bcrypt.genSalt(10);
   const hashedPassword = await bcrypt.hash("admin123", salt);
@@ -53,6 +53,7 @@ async function main() {
       password: hashedPassword,
       name: "Administrador",
       role: "admin",
+      squad: "PROFESIONAL",
     },
   });
 

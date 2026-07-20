@@ -1,11 +1,13 @@
-import { prisma } from "@/lib/prisma";
+﻿import { prisma } from "@/lib/prisma";
 import { normalizeName, parseFloatSafe, parseIntSafe } from "@/lib/utils";
 import { parse } from "csv-parse/sync";
 import { getISOWeek, aggregateWeekForPlayer } from "@/lib/services/weekly-aggregator";
 import { aggregateDailySessionsBatch } from "@/lib/services/daily-aggregator";
 import { z } from "zod";
+import type { Prisma } from "@prisma/client";
+import type { Squad } from "@/lib/squads";
 
-// ─── Types ──────────────────────────────────────────────────────────
+// Tipos
 
 export type DailyCsvUploadResult = {
   mode: "daily-csv";
@@ -19,20 +21,20 @@ export type DailyCsvUploadResult = {
   preview: Record<string, unknown>[];
 };
 
-// ─── CSV Column Mapping ─────────────────────────────────────────────
+// Mapeo de columnas CSV
 //
-// S-Files use semicolon (;) as delimiter.
-// Strict column names from GPS devices with common variants.
+// Los archivos S-File usan punto y coma como separador.
+// Se aceptan nombres de columnas habituales de los dispositivos GPS.
 
 const CSV_COL_MAP: Record<string, string> = {
-  // Player name
+  // Nombre del jugador
   "Player Name": "playerName",
   "player name": "playerName",
   "Nombre": "playerName",
   "Name": "playerName",
   "Jugador": "playerName",
 
-  // Total distance
+  // Distancia total
   "Total Distance": "totalDistance",
   "total distance": "totalDistance",
   "Distancia Total": "totalDistance",
@@ -44,7 +46,7 @@ const CSV_COL_MAP: Record<string, string> = {
   "hsr": "hsr",
   "High Speed Running": "hsr",
 
-  // Sprint distance
+  // Distancia en sprint
   "Sprint Distance": "sprintDistance",
   "sprint distance": "sprintDistance",
   "Distancia Sprint": "sprintDistance",
@@ -55,20 +57,22 @@ const CSV_COL_MAP: Record<string, string> = {
   "No. Of Spr": "sprints",
   "Number of Sprints": "sprints",
 
-  // Accelerations
+  // Aceleraciones
   "Accelerations (Relative)": "accelerations",
   "accelerations (relative)": "accelerations",
   "Accelerations": "accelerations",
+  "Aceleraciones": "accelerations",
   "Acc": "accelerations",
 
-  // Decelerations
+  // Desaceleraciones
   "Decelerations (Relative)": "decelerations",
   "decelerations (relative)": "decelerations",
   "Decelerations": "decelerations",
+  "Desaceleraciones": "decelerations",
   "Dec": "decelerations",
 };
 
-// ─── CSV Parsing ────────────────────────────────────────────────────
+// Lectura de CSV
 
 const CsvRowSchema = z.object({
   playerName: z.string().trim().min(1, "El nombre no puede estar vacío"),
@@ -82,10 +86,10 @@ const CsvRowSchema = z.object({
 
 type ParsedRow = z.infer<typeof CsvRowSchema>;
 
-/**
- * Parse a CSV buffer with semicolon delimiter.
- * Maps column headers using CSV_COL_MAP and normalizes values.
- */
+//
+// Lee un CSV separado por punto y coma.
+// Mapea encabezados con CSV_COL_MAP y normaliza valores.
+//
 function parseCsvBuffer(buffer: Buffer): ParsedRow[] {
   let content = buffer.toString("utf8");
   if (content.includes("\uFFFD")) {
@@ -94,17 +98,17 @@ function parseCsvBuffer(buffer: Buffer): ParsedRow[] {
 
   const rawRows = parse(content, {
     delimiter: ";",
-    columns: true,        // Use first row as headers
+    columns: true,        // Usar primera fila como encabezados
     skip_empty_lines: true,
     trim: true,
-    bom: true,            // Handle BOM from Windows-generated CSV
+    bom: true,            // Manejar BOM en archivos CSV generados en Windows
     relax_column_count: true,
   }) as Record<string, string>[];
 
   const parsed: ParsedRow[] = [];
 
   for (const raw of rawRows) {
-    // Map CSV columns to our internal field names
+    // Mapear columnas CSV a nombres internos
     const mapped: Record<string, unknown> = {};
     for (const [csvHeader, value] of Object.entries(raw)) {
       const trimmedHeader = csvHeader.trim();
@@ -130,81 +134,58 @@ function parseCsvBuffer(buffer: Buffer): ParsedRow[] {
   return parsed;
 }
 
-// ─── Player Resolution ──────────────────────────────────────────────
+// Funcion principal de carga
 
-/**
- * Find or create a player within a transaction.
- * Uses normalizeName() for consistent matching.
- */
-async function findOrCreatePlayerTx(
-  tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
-  rawName: string,
-): Promise<{ playerId: string; created: boolean }> {
-  const name = normalizeName(rawName);
-  if (!name) throw new Error(`Invalid player name: "${rawName}"`);
-
-  const existing = await tx.player.findUnique({ where: { name } });
-  if (existing) {
-    return { playerId: existing.id, created: false };
-  }
-
-  const created = await tx.player.create({
-    data: { name, position: "MEDIOCAMPISTA" },
-  });
-  return { playerId: created.id, created: true };
-}
-
-// ─── Main Upload Function ───────────────────────────────────────────
-
-/**
- * Process a daily CSV upload (S-File) with full transactional safety.
- *
- * Flow:
- *   1. Parse CSV (semicolon-delimited)
- *   2. Within a single transaction:
- *      a. Find/create each player (normalized name)
- *      b. Determine next session_number for (playerId, date)
- *      c. Insert into gps_daily_sessions
- *      d. Recalculate gps_daily_reports (sum of all sessions)
- *      e. Recalculate weekly_stats for affected weeks
- *   3. If ANY step fails → full rollback
- */
+//
+// Procesa una carga CSV diaria con seguridad transaccional.
+//
+// Flujo:
+//   1. Leer CSV separado por punto y coma
+//   2. Dentro de una misma transaccion:
+//      a. Buscar o crear cada jugador con nombre normalizado
+//      b. Determinar el siguiente numero de sesion para la fecha
+//      c. Insertar registros en gps_daily_sessions
+//      d. Recalcular gps_daily_reports como suma de sesiones
+//      e. Recalcular weekly_stats para las semanas afectadas
+//   3. Si falla cualquier paso -> se revierte todo
+//
 export async function processDailyCsvUpload(
   fileBuffer: Buffer,
   reportDate: string,
+  squad: Squad,
 ): Promise<DailyCsvUploadResult> {
-  // 1. Parse CSV outside transaction (pure function, no DB)
+  // Leer CSV fuera de la transaccion.
   const rows = parseCsvBuffer(fileBuffer);
 
   if (rows.length === 0) {
     throw new Error("EMPTY_CSV");
   }
 
-  // Parse date and force it to Noon UTC to avoid timezone shifts
+  // Fijar la fecha al mediodia UTC para evitar desfases horarios
   const dateStr = reportDate.includes('T') ? reportDate.split('T')[0] : reportDate;
   const date = new Date(`${dateStr}T12:00:00.000Z`);
   const { year, week } = getISOWeek(date);
 
   const maxSession = await prisma.gpsDailySession.aggregate({
     _max: { sessionNumber: true },
-    where: { date },
+    where: { date, player: { squad } },
   });
   const sessionNumber = (maxSession._max.sessionNumber ?? 0) + 1;
 
-  // 1. Batch Find or Create Players
+  // 1. Buscar o crear jugadores por lote
   const allNames = [...new Set(rows.map((r) => normalizeName(r.playerName)).filter(Boolean))] as string[];
   const existingPlayers = await prisma.player.findMany({
-    where: { name: { in: allNames } },
+    where: { squad, name: { in: allNames } },
   });
 
-  const playerMap = new Map(existingPlayers.map((p) => [p.name, p.id]));
+  const playerMap = new Map<string, string>(existingPlayers.map((p) => [p.name, p.id]));
   let playersCreated = 0;
 
   const missingNames = allNames.filter((name) => !playerMap.has(name));
   if (missingNames.length > 0) {
     const createdPlayers = await Promise.all(
       missingNames.map((name) =>
-        prisma.player.create({ data: { name, position: "MEDIOCAMPISTA" } }),
+        prisma.player.create({ data: { name, position: "MEDIOCAMPISTA", squad } }),
       ),
     );
     for (const p of createdPlayers) {
@@ -213,11 +194,14 @@ export async function processDailyCsvUpload(
     }
   }
 
-  // 2. Batch Insert Sessions
-  const sessionData = rows.map((row) => {
+  // 2. Insertar sesiones por lote
+  const sessionData: Prisma.GpsDailySessionCreateManyInput[] = rows.flatMap((row) => {
     const name = normalizeName(row.playerName);
+    const playerId = playerMap.get(name);
+    if (!playerId) return [];
+
     return {
-      playerId: playerMap.get(name)!,
+      playerId,
       date,
       sessionNumber,
       year,
@@ -229,13 +213,13 @@ export async function processDailyCsvUpload(
       accelerations: row.accelerations,
       decelerations: row.decelerations,
     };
-  }).filter((row) => row.playerId); // Safety check
+  });
 
   await prisma.gpsDailySession.createMany({ data: sessionData });
-  const affectedPlayerIds = Array.from(playerMap.values());
+  const affectedPlayerIds: string[] = Array.from(playerMap.values());
   const sessionsCreated = sessionData.length;
 
-  // 3. Batch Aggregations (concurrently)
+  // 3. Recalcular agregados por lote en paralelo
   await aggregateDailySessionsBatch(affectedPlayerIds, date);
 
   const uniquePlayerIds = [...new Set(affectedPlayerIds)];
@@ -250,7 +234,7 @@ export async function processDailyCsvUpload(
     weeksAggregated: uniquePlayerIds.length,
   };
 
-  // 3. Build response
+  // 3. Construir respuesta
   return {
     mode: "daily-csv",
     success: true,

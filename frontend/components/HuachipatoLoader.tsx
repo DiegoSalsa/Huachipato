@@ -18,7 +18,7 @@ export default function HuachipatoLoader({ className = "py-20" }: { className?: 
         {/* Sombra base estática para dar profundidad */}
         <div className="absolute w-16 h-16 bg-black/5 rounded-full blur-xl animate-pulse"></div>
         
-        {/* Logo palpitando */}
+        {/* Logo con animacion */}
         <div className="w-24 h-24 flex items-center justify-center animate-heartbeat z-10 drop-shadow-2xl">
           <img 
             src="https://vectorseek.com/wp-content/uploads/2024/01/Huachipato-FC-Logo-Vector.svg-.png" 

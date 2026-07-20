@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useMemo } from "react";
 import { 
@@ -16,11 +16,11 @@ export default function MedicoPage() {
   const [players, setPlayers] = useState<PlayerWithInjuries[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Clinical File State
+  // Estado de ficha clinica
   const [selectedPlayer, setSelectedPlayer] = useState<PlayerWithInjuries | null>(null);
   const [isClinicalFileOpen, setIsClinicalFileOpen] = useState(false);
 
-  // Filters State
+  // Estado de filtros
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("Todos");
 
@@ -66,7 +66,7 @@ export default function MedicoPage() {
     Grave: "bg-red-100 text-red-800 border-red-200",
   };
 
-  // --- Derived Data for KPIs ---
+  // Datos calculados para indicadores
   const kpis = useMemo(() => {
     const currentlyInjured = players.filter(p => getPlayerStatus(p) === "Lesionado").length;
     
@@ -88,7 +88,7 @@ export default function MedicoPage() {
     return { currentlyInjured, totalAltas, avgDays };
   }, [players]);
 
-  // --- Filter Logic ---
+  // Logica de filtros
   const filteredPlayers = useMemo(() => {
     return players.filter(player => {
       const matchesSearch = player.name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -107,7 +107,7 @@ export default function MedicoPage() {
   return (
     <RoleGuard allowedRoles={["medico", "admin"]}>
     <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6 md:space-y-8 overflow-hidden">
-      {/* Header */}
+      {/* Encabezado */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Módulo Médico</h1>
@@ -115,7 +115,7 @@ export default function MedicoPage() {
         </div>
       </div>
 
-      {/* KPIs Panel */}
+      {/* Panel de indicadores */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
         <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm flex items-center gap-4">
           <div className="p-4 bg-orange-50 rounded-xl text-orange-600">
@@ -148,10 +148,10 @@ export default function MedicoPage() {
         </div>
       </div>
 
-      {/* Main Content Area */}
+      {/* Area principal de contenido */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         
-        {/* Toolbar */}
+        {/* Barra de herramientas */}
         <div className="p-5 border-b border-gray-100 bg-gray-50/50 flex flex-col sm:flex-row gap-4 items-center justify-between">
           <div className="relative w-full sm:w-96">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -179,12 +179,12 @@ export default function MedicoPage() {
           </div>
         </div>
 
-        {/* Table */}
+        {/* Tabla */}
         {isLoading ? (
           <HuachipatoLoader />
         ) : (
           <div className="overflow-x-auto">
-            {/* Desktop Table */}
+            {/* Tabla de escritorio */}
             <table className="hidden md:table min-w-full divide-y divide-gray-100">
               <thead className="bg-gray-50">
                 <tr>
@@ -278,7 +278,7 @@ export default function MedicoPage() {
               </tbody>
             </table>
 
-            {/* Mobile Card View */}
+            {/* Vista movil en tarjetas */}
             <div className="md:hidden">
               {filteredPlayers.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-gray-400">
@@ -345,7 +345,7 @@ export default function MedicoPage() {
         )}
       </div>
 
-      {/* Clinical File SlideOver */}
+      {/* Ficha clinica lateral */}
       <ClinicalFileSlideOver 
         isOpen={isClinicalFileOpen} 
         onClose={() => setIsClinicalFileOpen(false)} 

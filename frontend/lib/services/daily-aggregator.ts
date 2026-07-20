@@ -1,19 +1,19 @@
-import { PrismaClient, Prisma } from "@prisma/client";
+﻿import { PrismaClient, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getISOWeek } from "@/lib/services/weekly-aggregator";
 
-/**
- * Daily Aggregator Service
- *
- * Sums all gps_daily_sessions for a given (playerId, date) and upserts
- * the result into gps_daily_reports (the day-level aggregate).
- *
- * Accepts a Prisma transaction client (`tx`) so that the aggregation
- * participates in the caller's transaction — ensuring atomicity.
- *
- * Flow:
- *   gps_daily_sessions  →  SUM  →  gps_daily_reports
- */
+//
+// Servicio de agregacion diaria
+//
+// Sums all gps_daily_sessions for a given (playerId, date) and upserts
+// the result into gps_daily_reports (the day-level aggregate).
+//
+// Accepts a Prisma transaction client (`tx`) so that the aggregation
+// participates in the caller's transaction - ensuring atomicity.
+//
+// Flujo:
+//   gps_daily_sessions  ->  SUM  ->  gps_daily_reports
+//
 
 // Type for Prisma interactive transaction client
 type TxClient = Omit<
@@ -30,13 +30,13 @@ const ZERO_METRICS = {
   decelerations: 0,
 };
 
-/**
- * Aggregate all sessions for a single player on a single date.
- * Upserts the totals into gps_daily_reports.
- *
- * If no sessions exist for the (playerId, date), the daily report
- * is deleted to keep the data consistent.
- */
+//
+// Aggregate all sessions for a single player on a single date.
+// Upserts the totals into gps_daily_reports.
+//
+// If no sessions exist for the (playerId, date), the daily report
+// is deleted to keep the data consistent.
+//
 export async function aggregateDailySessions(
   playerId: string,
   date: Date,
@@ -89,10 +89,10 @@ export async function aggregateDailySessions(
   });
 }
 
-/**
- * Aggregate daily sessions for multiple players on a given date.
- * Convenience wrapper for batch operations.
- */
+//
+// Aggregate daily sessions for multiple players on a given date.
+// Convenience wrapper for batch operations.
+//
 export async function aggregateDailySessionsBatch(
   playerIds: string[],
   date: Date,

@@ -1,17 +1,20 @@
-import { getDailyWeeklyOverview } from "@/lib/services/daily-weekly-overview";
+﻿import { getDailyWeeklyOverview } from "@/lib/services/daily-weekly-overview";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getRequestContext, unauthorized } from "@/lib/server-auth";
 
-/**
- * GET /api/overview?date=2026-05-20
- *
- * Returns today's player metrics + current week accumulated totals.
- * If no date is provided, defaults to today.
- */
+//
+// GET /api/overview?date=2026-05-20
+//
+// Returns today's player metrics + current week accumulated totals.
+// If no date is provided, defaults to today.
+//
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   try {
+    const context = await getRequestContext(request);
+    if (!context) return unauthorized();
     const { searchParams } = new URL(request.url);
     const dateParam = searchParams.get("date");
 
@@ -20,6 +23,7 @@ export async function GET(request: NextRequest) {
       targetDate = new Date(dateParam);
     } else {
       const latest = await prisma.gpsDailyReport.findFirst({
+        where: { player: { squad: context.squad } },
         orderBy: { date: "desc" },
         select: { date: true },
       });
@@ -33,7 +37,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const data = await getDailyWeeklyOverview(targetDate);
+    const data = await getDailyWeeklyOverview(targetDate, context.squad);
     return NextResponse.json(data);
   } catch (err) {
     console.error("Overview API error:", err);

@@ -1,8 +1,10 @@
-import { prisma } from "@/lib/prisma";
+﻿import { prisma } from "@/lib/prisma";
 import type { Position } from "@prisma/client";
+import type { Squad } from "@/lib/squads";
 
-export async function listPlayers() {
+export async function listPlayers(squad: Squad) {
   return prisma.player.findMany({
+    where: { squad },
     orderBy: { name: "asc" },
     include: {
       weeklyStats: {
@@ -13,9 +15,9 @@ export async function listPlayers() {
   });
 }
 
-export async function getPlayerById(playerId: string) {
-  return prisma.player.findUnique({
-    where: { id: playerId },
+export async function getPlayerById(playerId: string, squad: Squad) {
+  return prisma.player.findFirst({
+    where: { id: playerId, squad },
     include: {
       weeklyStats: {
         orderBy: [{ year: "desc" }, { weekNumber: "desc" }],
@@ -28,8 +30,8 @@ export async function getPlayerById(playerId: string) {
   });
 }
 
-export async function createPlayer(name: string, position: Position) {
+export async function createPlayer(name: string, position: Position, squad: Squad) {
   return prisma.player.create({
-    data: { name, position },
+    data: { name, position, squad },
   });
 }

@@ -1,17 +1,17 @@
-/**
- * Generador de Reportes PDF — Club Deportivo Huachipato
- * 
- * Genera un documento PDF profesional con la identidad visual del club,
- * incluyendo la tabla ACS completa con semáforo de riesgo.
- */
+﻿//
+// Generador de Reportes PDF - Club Deportivo Huachipato
+//
+// Genera un documento PDF profesional con la identidad visual del club,
+// incluyendo la tabla ACS completa con semáforo de riesgo.
+//
 import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
+import autoTabla from "jspdf-autotable";
 
-// ─── Club Branding ──────────────────────────────────────────────────
+// Identidad visual del club
 const COLORS = {
-  primary:    [0, 101, 149] as [number, number, number],   // #006595 — azul Huachipato oscuro
-  secondary:  [0, 133, 203] as [number, number, number],   // #0085CB — azul Huachipato
-  dark:       [15, 28, 35]  as [number, number, number],   // #0f1c23 — texto oscuro
+  primary:    [0, 101, 149] as [number, number, number],   // #006595 - azul Huachipato oscuro
+  secondary:  [0, 133, 203] as [number, number, number],   // #0085CB - azul Huachipato
+  dark:       [15, 28, 35]  as [number, number, number],   // #0f1c23 - texto oscuro
   white:      [255, 255, 255] as [number, number, number],
   lightGray:  [248, 250, 252] as [number, number, number], // fondo alterno filas
   midGray:    [148, 163, 184] as [number, number, number], // texto secundario
@@ -32,7 +32,7 @@ const POSITION_LABELS: Record<string, string> = {
   DELANTERO: "Delantero",
 };
 
-// ─── Types (mirrored from Dashboard) ────────────────────────────────
+// Tipos (mirrored from Dashboard)
 
 type AcwrRisk = "bajo" | "optimo" | "cuidado" | "alto";
 
@@ -64,10 +64,10 @@ interface ReportParams {
   logoBase64: string;
 }
 
-// ─── Helpers ────────────────────────────────────────────────────────
+// Funciones auxiliares
 
 function fmtRatio(r: number | null): string {
-  return r !== null ? r.toFixed(2) : "—";
+  return r !== null ? r.toFixed(2) : "-";
 }
 
 function fmtDist(meters: number): string {
@@ -78,12 +78,12 @@ function getRisk(p: PlayerData, period: "28" | "21"): AcwrRisk | null {
   return period === "28" ? p.overallRisk : p.overallRisk21;
 }
 
-function getRiskLabel(risk: AcwrRisk | null): string {
+function getRiskEtiqueta(risk: AcwrRisk | null): string {
   if (!risk) return "Sin datos";
   return RISK_COLORS[risk]?.label ?? risk;
 }
 
-// ─── PDF Generator ──────────────────────────────────────────────────
+// Generador de PDF
 
 export async function generateACSReport({ players, week, year, period, logoBase64 }: ReportParams): Promise<void> {
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
@@ -92,8 +92,8 @@ export async function generateACSReport({ players, week, year, period, logoBase6
   const margin = 15;
   const contentWidth = pageWidth - margin * 2;
 
-  // ─── HEADER BAND ──────────────────────────────────────────────
-  // Top accent bar
+  // Banda de encabezado
+  // Barra superior de color
   doc.setFillColor(...COLORS.primary);
   doc.rect(0, 0, pageWidth, 3, "F");
 
@@ -101,10 +101,10 @@ export async function generateACSReport({ players, week, year, period, logoBase6
   try {
     doc.addImage(logoBase64, "PNG", margin, 8, 18, 18);
   } catch {
-    // If logo fails, skip it gracefully
+    // Si el logo no carga, se continua sin interrumpir el reporte
   }
 
-  // Title block
+  // Bloque de titulo
   doc.setFont("helvetica", "bold");
   doc.setFontSize(18);
   doc.setTextColor(...COLORS.dark);
@@ -115,7 +115,7 @@ export async function generateACSReport({ players, week, year, period, logoBase6
   doc.setTextColor(...COLORS.midGray);
   doc.text("Departamento de Rendimiento Físico", margin + 22, 22);
 
-  // Report title and metadata (right side)
+  // Titulo del reporte y datos generales
   doc.setFont("helvetica", "bold");
   doc.setFontSize(14);
   doc.setTextColor(...COLORS.secondary);
@@ -129,12 +129,12 @@ export async function generateACSReport({ players, week, year, period, logoBase6
   });
   doc.text(`Semana ${week} · ${year}  |  Periodo ${period} días  |  ${today}`, pageWidth - margin, 20, { align: "right" });
 
-  // Divider line
+  // Linea divisoria
   doc.setDrawColor(...COLORS.border);
   doc.setLineWidth(0.5);
   doc.line(margin, 30, pageWidth - margin, 30);
 
-  // ─── KPI SUMMARY BOXES ────────────────────────────────────────
+  // Resumen de indicadores
   const yKpi = 35;
   const boxW = contentWidth / 5;
   const boxH = 18;
@@ -158,38 +158,38 @@ export async function generateACSReport({ players, week, year, period, logoBase6
   kpis.forEach((kpi, i) => {
     const x = margin + i * boxW;
     
-    // Box background
+    // Fondo de la caja
     doc.setFillColor(...kpi.bgColor);
     doc.roundedRect(x + 1, yKpi, boxW - 2, boxH, 2, 2, "F");
 
-    // Label
+    // Etiqueta
     doc.setFont("helvetica", "bold");
     doc.setFontSize(7);
     doc.setTextColor(...COLORS.midGray);
     doc.text(kpi.label, x + boxW / 2, yKpi + 6, { align: "center" });
 
-    // Value
+    // Valor
     doc.setFont("helvetica", "bold");
     doc.setFontSize(16);
     doc.setTextColor(...kpi.color);
     doc.text(kpi.value, x + boxW / 2, yKpi + 14, { align: "center" });
   });
 
-  // ─── DATA TABLE ───────────────────────────────────────────────
-  const yTable = yKpi + boxH + 8;
+  // Tabla de datos
+  const yTabla = yKpi + boxH + 8;
 
-  // Section title
+  // Titulo de seccion
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
   doc.setTextColor(...COLORS.dark);
-  doc.text("Tabla ACS del Plantel", margin, yTable);
+  doc.text("Tabla ACS del Plantel", margin, yTabla);
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
   doc.setTextColor(...COLORS.midGray);
-  doc.text(`Ratios calculados con fórmula de carga crónica ${period} días · Semáforo de riesgo`, margin, yTable + 5);
+  doc.text(`Ratios calculados con fórmula de carga crónica ${period} días · Semáforo de riesgo`, margin, yTabla + 5);
 
-  // Sort: alto first, then cuidado, bajo, optimo, null
+  // Ordenar por nivel de riesgo
   const priority: Record<string, number> = { alto: 0, cuidado: 1, bajo: 2, optimo: 3 };
   const sorted = [...players].sort((a, b) => {
     const ra = getRisk(a, period);
@@ -199,7 +199,7 @@ export async function generateACSReport({ players, week, year, period, logoBase6
     return pa - pb;
   });
 
-  // Build table data
+  // Construir datos de la tabla
   const tableHead = [
     ["#", "Jugador", "Posición", "Dist. Semanal", "A:C Distancia", "A:C Alta Vel.", "A:C Impactos", "Estado"],
   ];
@@ -214,16 +214,16 @@ export async function generateACSReport({ players, week, year, period, logoBase6
       String(idx + 1),
       p.playerName,
       POSITION_LABELS[p.position] ?? p.position,
-      p.currentWeek ? fmtDist(p.currentWeek.totalDistance) : "—",
+      p.currentWeek ? fmtDist(p.currentWeek.totalDistance) : "-",
       fmtRatio(rDist),
       fmtRatio(rVel),
       fmtRatio(rImp),
-      getRiskLabel(risk),
+      getRiskEtiqueta(risk),
     ];
   });
 
-  autoTable(doc, {
-    startY: yTable + 8,
+  autoTabla(doc, {
+    startY: yTabla + 8,
     margin: { left: margin, right: margin },
     head: tableHead,
     body: tableBody,
@@ -258,7 +258,7 @@ export async function generateACSReport({ players, week, year, period, logoBase6
       fillColor: COLORS.lightGray,
     },
     didParseCell: (data) => {
-      // Color the "Estado" column based on risk
+      // Colorear la columna de estado segun riesgo
       if (data.section === "body" && data.column.index === 7) {
         const val = data.cell.raw as string;
         const riskKey = Object.entries(RISK_COLORS).find(([, v]) => v.label === val);
@@ -267,7 +267,7 @@ export async function generateACSReport({ players, week, year, period, logoBase6
           data.cell.styles.textColor = riskKey[1].text;
         }
       }
-      // Color ratio cells based on value
+      // Colorear ratios segun valor
       if (data.section === "body" && data.column.index >= 4 && data.column.index <= 6) {
         const val = parseFloat(data.cell.raw as string);
         if (!isNaN(val)) {
@@ -280,46 +280,46 @@ export async function generateACSReport({ players, week, year, period, logoBase6
     },
   });
 
-  // ─── LEGEND ───────────────────────────────────────────────────
+  // Leyenda
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const finalY = (doc as any).lastAutoTable?.finalY ?? 160;
-  const yLegend = finalY + 6;
+  const finalY = (doc as any).lastAutoTabla?.finalY ?? 160;
+  const yLeyenda = finalY + 6;
 
-  if (yLegend + 16 < pageHeight - 20) {
+  if (yLeyenda + 16 < pageHeight - 20) {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(7);
     doc.setTextColor(...COLORS.midGray);
-    doc.text("GUÍA DE SEMÁFORO ACS", margin, yLegend);
+    doc.text("GUÍA DE SEMÁFORO ACS", margin, yLeyenda);
 
     const legends = [
-      { color: [56, 189, 248] as [number, number, number],  text: "< 0.80 — Bajo (subentrenamiento)" },
-      { color: [52, 211, 153] as [number, number, number],  text: "0.80 – 1.30 — Óptimo" },
-      { color: [251, 191, 36] as [number, number, number],  text: "1.31 – 1.50 — Cuidado" },
-      { color: [248, 113, 113] as [number, number, number], text: "> 1.50 — Alto Riesgo (sobrecarga)" },
+      { color: [56, 189, 248] as [number, number, number],  text: "< 0.80 - Bajo (subentrenamiento)" },
+      { color: [52, 211, 153] as [number, number, number],  text: "0.80 - 1.30 - Óptimo" },
+      { color: [251, 191, 36] as [number, number, number],  text: "1.31 - 1.50 - Cuidado" },
+      { color: [248, 113, 113] as [number, number, number], text: "> 1.50 - Alto Riesgo (sobrecarga)" },
     ];
 
     legends.forEach((leg, i) => {
       const x = margin + i * (contentWidth / 4);
       doc.setFillColor(...leg.color);
-      doc.circle(x + 2, yLegend + 5, 1.5, "F");
+      doc.circle(x + 2, yLeyenda + 5, 1.5, "F");
       doc.setFont("helvetica", "normal");
       doc.setFontSize(7);
       doc.setTextColor(...COLORS.dark);
-      doc.text(leg.text, x + 6, yLegend + 6);
+      doc.text(leg.text, x + 6, yLeyenda + 6);
     });
   }
 
-  // ─── FOOTER ───────────────────────────────────────────────────
-  // Bottom accent bar
+  // Pie de pagina
+  // Barra inferior de color
   doc.setFillColor(...COLORS.primary);
   doc.rect(0, pageHeight - 3, pageWidth, 3, "F");
 
-  // Footer text
+  // Texto del pie de pagina
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7);
   doc.setTextColor(...COLORS.midGray);
   doc.text(
-    "CONFIDENCIAL — Club Deportivo Huachipato · Departamento de Rendimiento Físico",
+    "CONFIDENCIAL - Club Deportivo Huachipato · Departamento de Rendimiento Físico",
     margin, pageHeight - 7
   );
   doc.text(
@@ -328,12 +328,12 @@ export async function generateACSReport({ players, week, year, period, logoBase6
     { align: "right" }
   );
 
-  // ─── SAVE ─────────────────────────────────────────────────────
+  // Guardar archivo
   const fileName = `ACS_Huachipato_S${week}_${year}_${period}d.pdf`;
   doc.save(fileName);
 }
 
-// ─── Logo Loader (converts image URL to base64) ─────────────────────
+// Carga del logo en base64
 
 export async function loadLogoBase64(): Promise<string> {
   return new Promise((resolve) => {

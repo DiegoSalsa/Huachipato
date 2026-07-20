@@ -1,19 +1,19 @@
-import { prisma } from "@/lib/prisma";
+﻿import { prisma } from "@/lib/prisma";
 
-/**
- * Weekly Aggregator Service
- *
- * Aggregates gps_daily_reports into weekly_stats.
- *
- * For a given player and week:
- *   total_distance    = SUM(total_distance) from daily reports
- *   high_velocity     = SUM(hsr + sprint_distance)
- *   mechanical_impacts = SUM(sprints + accelerations + decelerations)
- */
+//
+// Servicio de agregacion semanal
+//
+// Aggregates gps_daily_reports into weekly_stats.
+//
+// For a given player and week:
+//   total_distance    = SUM(total_distance) from daily reports
+//   high_velocity     = SUM(hsr + sprint_distance)
+//   mechanical_impacts = SUM(sprints + accelerations + decelerations)
+//
 
-/**
- * Get ISO week number from a Date.
- */
+//
+// Get ISO week number from a Date.
+//
 export function getISOWeek(date: Date): { year: number; week: number } {
   const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
   const dayNum = d.getUTCDay() || 7;
@@ -28,10 +28,10 @@ type TxClient = Omit<
   "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends"
 >;
 
-/**
- * Aggregate daily reports for a specific player and week into a weekly stat.
- * Upserts the weekly_stats row.
- */
+//
+// Aggregate daily reports for a specific player and week into a weekly stat.
+// Upserts the weekly_stats row.
+//
 export async function aggregateWeekForPlayer(
   playerId: string,
   year: number,
@@ -86,10 +86,10 @@ export async function aggregateWeekForPlayer(
   });
 }
 
-/**
- * Aggregate all affected weeks after a bulk upload of daily reports.
- * Determines which (player, year, week) combos need recalculation.
- */
+//
+// Aggregate all affected weeks after a bulk upload of daily reports.
+// Determines which (player, year, week) combos need recalculation.
+//
 export async function aggregateAllAffectedWeeks(
   playerIds: string[],
   dates: Date[],
@@ -116,9 +116,9 @@ export async function aggregateAllAffectedWeeks(
   return results.filter(Boolean);
 }
 
-/**
- * Get a Date from ISO year, week number, and day of week (1=Monday, 7=Sunday).
- */
+//
+// Get a Date from ISO year, week number, and day of week (1=Monday, 7=Sunday).
+//
 function getDateFromISOWeek(year: number, week: number, dayOfWeek: number): Date {
   const jan4 = new Date(Date.UTC(year, 0, 4));
   const dayOfWeekJan4 = jan4.getUTCDay() || 7;
