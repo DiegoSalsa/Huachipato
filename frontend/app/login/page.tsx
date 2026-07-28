@@ -69,7 +69,7 @@ export default function LoginPage() {
             <img
               alt="Club Deportivo Huachipato Logo"
               className="h-auto w-80 lg:w-96"
-              src="https://vectorseek.com/wp-content/uploads/2024/01/Huachipato-FC-Logo-Vector.svg-.png"
+              src="/huachipato-logo.png"
             />
           </div>
           <h1 className="font-headline font-extrabold text-5xl text-white tracking-tight mb-4 uppercase">
@@ -88,7 +88,7 @@ export default function LoginPage() {
           <img
             alt="Huachipato Logo"
             className="h-auto w-24 sm:w-28"
-            src="https://vectorseek.com/wp-content/uploads/2024/01/Huachipato-FC-Logo-Vector.svg-.png"
+            src="/huachipato-logo.png"
           />
         </div>
 
@@ -209,20 +209,6 @@ export default function LoginPage() {
                 Club Deportivo Huachipato
               </span>
             </p>
-            <div className="flex justify-center gap-6 mt-6">
-              <a
-                className="text-outline hover:text-[#006195] transition-colors"
-                href="#"
-              >
-                <span className="material-symbols-outlined text-xl">help</span>
-              </a>
-              <a
-                className="text-outline hover:text-[#006195] transition-colors"
-                href="#"
-              >
-                <span className="material-symbols-outlined text-xl">language</span>
-              </a>
-            </div>
           </footer>
         </div>
       </section>

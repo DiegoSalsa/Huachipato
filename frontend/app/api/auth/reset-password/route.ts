@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import { getPasswordError } from "@/lib/password-policy";
 import { hashPasswordResetToken } from "@/lib/password-reset";
 
 export async function POST(request: NextRequest) {
@@ -9,9 +10,8 @@ export async function POST(request: NextRequest) {
     if (typeof token !== "string" || token.length < 32) {
       return NextResponse.json({ message: "El enlace no es válido." }, { status: 400 });
     }
-    if (typeof password !== "string" || password.length < 8) {
-      return NextResponse.json({ message: "La contraseña debe tener al menos 8 caracteres." }, { status: 400 });
-    }
+    const passwordError = getPasswordError(password);
+    if (passwordError) return NextResponse.json({ message: passwordError }, { status: 400 });
 
     const tokenHash = hashPasswordResetToken(token);
     const user = await prisma.user.findUnique({ where: { passwordResetTokenHash: tokenHash } });

@@ -2,6 +2,11 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import {
+  getPasswordError,
+  MIN_PASSWORD_LENGTH,
+  PASSWORD_REQUIREMENTS,
+} from "@/lib/password-policy";
 
 export default function ResetPasswordForm({ token }: { token: string }) {
   const [password, setPassword] = useState("");
@@ -15,7 +20,8 @@ export default function ResetPasswordForm({ token }: { token: string }) {
     event.preventDefault();
     setError("");
     if (!token) return setError("El enlace no es válido. Solicita uno nuevo.");
-    if (password.length < 8) return setError("La contraseña debe tener al menos 8 caracteres.");
+    const passwordError = getPasswordError(password);
+    if (passwordError) return setError(passwordError);
     if (password !== confirmation) return setError("Las contraseñas no coinciden.");
 
     setLoading(true);
@@ -54,7 +60,7 @@ export default function ResetPasswordForm({ token }: { token: string }) {
             </div>
           ) : (
             <form onSubmit={handleSubmit}>
-              <p className="mb-6 text-sm leading-6 text-slate-500">Usa al menos 8 caracteres para proteger tu cuenta.</p>
+              <p className="mb-6 text-sm leading-6 text-slate-500">{PASSWORD_REQUIREMENTS}</p>
               {error && <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
               <PasswordField label="Nueva contraseña" value={password} show={showPassword} onChange={setPassword} />
               <div className="mt-4">
@@ -97,7 +103,7 @@ function PasswordField({
       <input
         type={show ? "text" : "password"}
         required
-        minLength={8}
+        minLength={MIN_PASSWORD_LENGTH}
         autoComplete="new-password"
         value={value}
         onChange={(event) => onChange(event.target.value)}

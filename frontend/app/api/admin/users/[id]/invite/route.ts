@@ -14,7 +14,7 @@ export async function POST(
   const { id } = await params;
   const user = await prisma.user.findUnique({ where: { id } });
   if (!user) return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
-  if (user.role === "admin" || !["medico", "gps"].includes(user.role)) {
+  if (!["medico", "gps", "admin"].includes(user.role)) {
     return NextResponse.json({ error: "No se puede invitar esta cuenta" }, { status: 400 });
   }
   if (user.status !== "PENDING") {
@@ -35,7 +35,7 @@ export async function POST(
       userId: user.id,
       email: user.email,
       name: user.name || user.email,
-      role: user.role as "medico" | "gps",
+      role: user.role as "medico" | "gps" | "admin",
       squad: user.squad as Squad,
       token: invitation.token,
     });

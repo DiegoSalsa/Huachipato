@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { getRequestContext, unauthorized } from '@/lib/server-auth';
+import { getPasswordError } from '@/lib/password-policy';
 import { isSquad } from '@/lib/squads';
 
 const prisma = new PrismaClient();
@@ -17,6 +18,11 @@ export async function POST(request: NextRequest) {
         { message: 'Email y contraseña son requeridos' },
         { status: 400 }
       );
+    }
+
+    const passwordError = getPasswordError(password);
+    if (passwordError) {
+      return NextResponse.json({ message: passwordError }, { status: 400 });
     }
 
     if (!['medico', 'gps'].includes(role) || !isSquad(squad)) {

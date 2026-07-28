@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import { getPasswordError } from "@/lib/password-policy";
 import { hashInvitationToken } from "@/lib/user-invitations";
 
 export async function POST(request: NextRequest) {
@@ -9,9 +10,8 @@ export async function POST(request: NextRequest) {
     if (typeof token !== "string" || token.length < 32) {
       return NextResponse.json({ error: "Invitación inválida" }, { status: 400 });
     }
-    if (typeof password !== "string" || password.length < 8) {
-      return NextResponse.json({ error: "La contraseña debe tener al menos 8 caracteres" }, { status: 400 });
-    }
+    const passwordError = getPasswordError(password);
+    if (passwordError) return NextResponse.json({ error: passwordError }, { status: 400 });
 
     const tokenHash = hashInvitationToken(token);
     const user = await prisma.user.findUnique({ where: { inviteTokenHash: tokenHash } });

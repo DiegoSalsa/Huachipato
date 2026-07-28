@@ -4,14 +4,14 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import RoleGuard from "@/components/RoleGuard";
 import { SQUADS, SQUAD_LABELS, type Squad } from "@/lib/squads";
 
-type ManagedRole = "medico" | "gps";
+type ManagedRole = "medico" | "gps" | "admin";
 type UserStatus = "PENDING" | "ACTIVE" | "BLOCKED";
 
 interface ManagedUser {
   id: string;
   name: string | null;
   email: string;
-  role: ManagedRole | "admin";
+  role: ManagedRole;
   squad: Squad;
   status: UserStatus;
   lastInviteSentAt: string | null;
@@ -284,7 +284,7 @@ export default function AdminUsuariosPage() {
                               {!isAdmin && <ActionButton icon="edit" label="Editar" disabled={busy} onClick={() => openEdit(user)} />}
                               {user.status === "PENDING" && <ActionButton icon="forward_to_inbox" label="Reenviar" disabled={busy} onClick={() => void handleResend(user)} />}
                               {!isAdmin && user.status !== "PENDING" && <ActionButton icon={user.status === "BLOCKED" ? "lock_open" : "block"} label={user.status === "BLOCKED" ? "Habilitar" : "Bloquear"} disabled={busy} onClick={() => void handleToggleStatus(user)} />}
-                              {!isAdmin && <ActionButton icon="delete" label="Eliminar" danger disabled={busy} onClick={() => void handleDelete(user)} />}
+                              {(!isAdmin || user.status === "PENDING") && <ActionButton icon="delete" label="Eliminar" danger disabled={busy} onClick={() => void handleDelete(user)} />}
                             </div>
                           </td>
                         </tr>
@@ -311,11 +311,11 @@ export default function AdminUsuariosPage() {
                         <div><p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Serie</p><p className="mt-0.5 font-semibold text-slate-700">{isAdmin ? "Todas" : SQUAD_LABELS[user.squad]}</p></div>
                         {user.lastInviteSentAt && <div className="col-span-2"><p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Última invitación</p><p className="mt-0.5 font-semibold text-slate-700">{formatDate(user.lastInviteSentAt)}</p></div>}
                       </div>
-                      {!isAdmin && (
+                      {(!isAdmin || user.status === "PENDING") && (
                         <div className="mt-3 grid grid-cols-2 gap-2">
-                          <MobileAction icon="edit" label="Editar" disabled={busy} onClick={() => openEdit(user)} />
+                          {!isAdmin && <MobileAction icon="edit" label="Editar" disabled={busy} onClick={() => openEdit(user)} />}
                           {user.status === "PENDING" && <MobileAction icon="forward_to_inbox" label="Reenviar" disabled={busy} onClick={() => void handleResend(user)} />}
-                          {user.status !== "PENDING" && <MobileAction icon={user.status === "BLOCKED" ? "lock_open" : "block"} label={user.status === "BLOCKED" ? "Habilitar" : "Bloquear"} disabled={busy} onClick={() => void handleToggleStatus(user)} />}
+                          {!isAdmin && user.status !== "PENDING" && <MobileAction icon={user.status === "BLOCKED" ? "lock_open" : "block"} label={user.status === "BLOCKED" ? "Habilitar" : "Bloquear"} disabled={busy} onClick={() => void handleToggleStatus(user)} />}
                           <MobileAction icon="delete" label="Eliminar" danger disabled={busy} onClick={() => void handleDelete(user)} />
                         </div>
                       )}
@@ -345,11 +345,12 @@ export default function AdminUsuariosPage() {
                 <Field label="Correo"><input required type="email" disabled={!!editing} value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} className={`${inputClass} disabled:cursor-not-allowed disabled:opacity-60`} /></Field>
                 <Field label="Rol">
                   <select value={form.role} onChange={(event) => setForm({ ...form, role: event.target.value as ManagedRole })} className={inputClass}>
-                    <option value="gps">Personal GPS</option><option value="medico">Área Médica</option>
+                    <option value="gps">Personal GPS</option><option value="medico">Área Médica</option><option value="admin">Administrador</option>
                   </select>
                 </Field>
                 <Field label="Serie">
-                  <select value={form.squad} onChange={(event) => setForm({ ...form, squad: event.target.value as Squad })} className={inputClass}>
+                  <select disabled={form.role === "admin"} value={form.squad} onChange={(event) => setForm({ ...form, squad: event.target.value as Squad })} className={`${inputClass} disabled:cursor-not-allowed disabled:opacity-60`}>
+                    {form.role === "admin" && <option value="PROFESIONAL">Todas las series</option>}
                     {SQUADS.map((squad) => <option key={squad} value={squad}>{SQUAD_LABELS[squad]}</option>)}
                   </select>
                 </Field>

@@ -68,10 +68,16 @@ export async function DELETE(
     return NextResponse.json({ error: "No puedes eliminar tu propia cuenta" }, { status: 400 });
   }
 
-  const target = await prisma.user.findUnique({ where: { id }, select: { role: true } });
+  const target = await prisma.user.findUnique({
+    where: { id },
+    select: { role: true, status: true },
+  });
   if (!target) return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
-  if (target.role === "admin") {
-    return NextResponse.json({ error: "Las cuentas administradoras no se eliminan desde este panel" }, { status: 403 });
+  if (target.role === "admin" && target.status !== "PENDING") {
+    return NextResponse.json(
+      { error: "Las cuentas administradoras activas no se eliminan desde este panel" },
+      { status: 403 },
+    );
   }
 
   await prisma.user.delete({ where: { id } });
